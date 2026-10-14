@@ -13,6 +13,11 @@ const router = createRouter({
       name: 'dev-clock',
       component: () => import('@/features/music-player/dev/ClockDemo.vue'),
     },
+    {
+      path: '/dev/robot',
+      name: 'dev-robot',
+      component: () => import('@/features/robot/dev/RobotDemo.vue'),
+    },
   ],
 })
 
