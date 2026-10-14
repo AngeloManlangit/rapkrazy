@@ -9,4 +9,5 @@
 *.webm binary
 
 # Vendored third-party builds
-public/vendor/** -diff linguist-vendored
+public/vendor/** linguist-vendored
+public/vendor/**/*.worker.* -diff
