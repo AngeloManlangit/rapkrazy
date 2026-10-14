@@ -26,7 +26,8 @@ game server to run.
 | --- | --- |
 | Oct 14 | Multiplayer v1 is **writing-based** (tracker version). Singing/recording turns (telephone twist on audio) come after v1 works. |
 | Oct 14 | Frontend is Vue 3 + Vite + TypeScript (repo template). |
-| open | Robot TTS engine. See [Robot voice](#robot-voice). |
+| Oct 14 | SAM rejected for robot TTS: no license, so we have no rights to use it. |
+| open | Robot TTS engine: eSpeak-NG (leading) or Kokoro. See [Robot voice](#robot-voice). |
 
 ## Tech stack
 
@@ -172,12 +173,13 @@ would be silent in video export.
 
 | Option | Sound | Size / cost | Notes |
 | --- | --- | --- | --- |
-| SAM (`sam-js`) | Classic 1982 C64 robot | ~20 KB min JS, free | Returns raw audio buffers; per-phrase pitch/speed, so it can actually "sing" notes. License is murky (reverse-engineered commercial software; copyright holder unreachable). |
-| eSpeak-NG wasm (`espeak-ng`) | Robotic, clearer than SAM | npm package ~18 MB unpacked, free | GPL-3.0, same as this repo. Many languages and voices. |
-| Piper wasm (`@mintplex-labs/piper-tts-web`) | Natural neural voice | Voice model downloaded at runtime (tens of MB) | MIT. Sounds human, so less "robot" without effects. |
+| eSpeak-NG ([engine](https://github.com/espeak-ng/espeak-ng), [browser build](https://github.com/espeak-ng/espeak-ng/tree/master/emscripten), [npm wrapper](https://github.com/ianmarmour/espeak-ng.js)) | Robotic | ~3.2 MB with all voices (per upstream README) | **Leading.** GPL-3.0, same as this repo. Runs in a Web Worker, `synthesize(text, cb(samples))`, rate and pitch settable. Browser builds are old (2017–2023); the engine is active. |
+| Kokoro ([hexgrad/kokoro](https://github.com/hexgrad/kokoro), `kokoro-js`) | Natural neural voice | Large model download (size to check) | Apache-2.0. Needs a Web Audio robot effect (bitcrusher/ring mod) to sound robotic. |
+| Piper ([piper-tts-web](https://github.com/Mintplex-Labs/piper-tts-web)) | Natural neural voice | Voice model downloaded at runtime (tens of MB) | Skipped for now: wrapper repos have no license file. |
+| SAM ([discordier/sam](https://github.com/discordier/sam)) | Classic 1982 C64 robot | ~20 KB | **Rejected:** no license (reverse-engineered commercial software). |
 | Cloud TTS via edge function | Natural, many voices | Free tiers, then paid | Needs edge function, key and caching. |
 
-Sizes are from npm metadata (Oct 14) and need checking in a spike.
+Using a GPL-3.0 or Apache-2.0 engine: keep its license notice in the repo and credit it on the credits page.
 
 ### How the robot raps on beat
 
