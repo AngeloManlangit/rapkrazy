@@ -7,3 +7,7 @@
 *.wav binary
 *.ogg binary
 *.webm binary
+
+# Vendored third-party builds
+public/vendor/** linguist-vendored
+public/vendor/**/*.worker.* -diff

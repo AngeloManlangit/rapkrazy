@@ -2,7 +2,14 @@
 
 **Owners:** @dextr5 (voice + beat sync), @AngeloManlangit (sprites + animation)
 
-Implements `RobotVoice` (`src/shared/audio/RobotVoice.ts`) and schedules chunks on `beatClock`. TTS engine still to be picked.
+Voice: `EspeakVoice.ts` implements `RobotVoice` with the vendored eSpeak-NG worker
+(`public/vendor/espeakng/`). `rapPlan.ts` splits a `LyricLine` into chunks placed on beat slots.
+Test page: `/dev/robot` (synthesized drums, rate/pitch/voice/variant controls).
+
+```ts
+const voice = new EspeakVoice()
+const audio = await voice.synth('beep boop', { voice: 'en-us+croak', speed: 250, pitch: 40 })
+```
 
 Tracker tasks:
 
