@@ -40,3 +40,6 @@ __screenshots__/
 
 # Personal Claude Code instructions
 CLAUDE.local.md
+
+# API Key stuff
+.env
