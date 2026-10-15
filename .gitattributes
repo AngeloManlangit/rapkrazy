@@ -1,0 +1,9 @@
+# Normalize line endings so Windows/macOS teammates don't produce whole-file diffs.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.mp3 binary
+*.wav binary
+*.ogg binary
+*.webm binary

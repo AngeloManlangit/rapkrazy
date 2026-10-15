@@ -1,0 +1,21 @@
+# PRs touching these paths request review from the owners.
+# Takes effect once branch protection requires code owner reviews on main.
+
+# Shared contracts and repo-wide config: everyone builds on these.
+/src/shared/                  @dextr5
+/src/router/                  @dextr5 @AngeloManlangit
+/package.json                 @dextr5 @AngeloManlangit
+/docs/                        @dextr5
+
+# Features
+/src/features/music-player/   @dextr5
+/src/features/song-catalog/   @dextr5
+/src/features/robot/          @dextr5 @AngeloManlangit
+/src/features/writing-board/  @AngeloManlangit
+/src/features/soundboard/     @AngeloManlangit
+/src/features/ai-writer/      @Lloyalcole
+/supabase/functions/lyrics/   @Lloyalcole
+
+# Assets
+/src/assets/                  @AngeloManlangit
+/public/beats/                @AngeloManlangit @dextr5
