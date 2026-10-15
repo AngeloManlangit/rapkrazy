@@ -13,6 +13,8 @@
 /src/features/robot/          @dextr5 @AngeloManlangit
 /src/features/writing-board/  @AngeloManlangit
 /src/features/soundboard/     @AngeloManlangit
+/src/features/ai-writer/      @Lloyalcole
+/supabase/functions/lyrics/   @Lloyalcole
 
 # Assets
 /src/assets/                  @AngeloManlangit

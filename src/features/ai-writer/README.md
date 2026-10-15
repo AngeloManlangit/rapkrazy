@@ -1,6 +1,6 @@
 # AI-powered writer
 
-**Owner:** unassigned
+**Owner:** @Lloyalcole (Cole)
 
 Calls the `lyrics` Supabase edge function (Gemini key never in the browser). Falls back to the lyric bank on any error.
 
