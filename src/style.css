@@ -1,1 +1,54 @@
 @import "tailwindcss";
+
+/* ============================================================
+   GRAFFITI THEME: merge into src/style.css
+   1) Put the @import line at the VERY TOP of your style.css
+      (CSS requires @import to come before everything else).
+   2) Paste everything under it at the bottom of your style.css.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Rubik+Spray+Paint&family=DM+Sans:wght@400;500;700&display=swap');
+
+/* ---------- Design tokens ---------- */
+:root {
+  --spray-pink: #ff2e88;
+  --spray-cyan: #19d3f3;
+  --spray-yellow: #ffe600;
+  --paint-white: #f5f5f0;
+  --slab: #141216;
+  --outline: #111111;
+
+  --font-display: 'Rubik Spray Paint', 'Permanent Marker', cursive;
+  --font-marker: 'Permanent Marker', 'Marker Felt', cursive;
+  --font-body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Brick tile (120x96) drawn as an inline SVG */
+  --brick-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='96'%3E%3Cg stroke='%23171212' stroke-width='3' fill='none'%3E%3Cpath d='M0 1.5H120M0 49.5H120M1.5 0V48M61.5 48V96'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ---------- Reusable pieces ---------- */
+.brick-wall {
+  background-color: #3a2b2b;
+  background-image: var(--brick-tile);
+  color: var(--paint-white);
+  font-family: var(--font-body);
+}
+
+/* Black slab with a neon edge: use on any panel that should match */
+.slab-panel {
+  background: rgba(20, 18, 22, 0.92);
+  border: 3px solid var(--spray-cyan);
+  border-radius: 6px;
+  box-shadow: 0 0 0 3px var(--outline), 6px 7px 0 var(--spray-yellow);
+}
+
+/* Big spray-paint headline */
+.tag-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1;
+  color: var(--spray-pink);
+  text-shadow: 3px 3px 0 var(--spray-cyan), 6px 6px 0 var(--outline);
+  transform: rotate(-2deg);
+}
