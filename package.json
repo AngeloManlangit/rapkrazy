@@ -14,6 +14,8 @@
     "check": "run-s type-check lint"
   },
   "dependencies": {
+    "24": "^0.0.0",
+    "tracery-grammar": "^2.8.4",
     "vue": "^3.5.42",
     "vue-router": "^5.3.1"
   },

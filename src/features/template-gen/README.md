@@ -3,6 +3,7 @@
 **Owner:** Rus (GitHub handle TBD)
 
 Outputs `TemplateLine[]` (`src/shared/types.ts`); the writing board turns filled templates into `LyricLine[]`.
+Demo: `/dev/template-gen`.
 
 Tracker tasks:
 

@@ -1,0 +1,46 @@
+{
+  "theme": "flex",
+
+  "shapes": {
+    "boast": [
+      "I'm so #adj# I make #victim# look {{adjective:end}}",
+      "#open# #brag#, got that {{noun:end}}",
+      "They call me {{nickname:name}}, #brag# like {{noun:end}}"
+    ],
+    "simile": [
+      "#open# #brag# like {{noun:end}} in a {{place:end}}"
+    ],
+    "punchline": [
+      "#victim# talk big, but I'm the {{noun:end}}",
+      "Tell {{nickname:rival}} I said #taunt#"
+    ]
+  },
+
+  "pools": {
+    "adj": [
+      { "text": "fresh", "syllables": 1 },
+      { "text": "icy", "syllables": 2 },
+      { "text": "smooth", "syllables": 1 },
+      { "text": "filthy", "syllables": 2, "explicit": true }
+    ],
+    "victim": [
+      { "text": "the sun", "syllables": 2 },
+      { "text": "your whole crew", "syllables": 3 },
+      { "text": "last year's champ", "syllables": 3 }
+    ],
+    "open": [
+      { "text": "Pulled up deep,", "syllables": 3 },
+      { "text": "Walked in late,", "syllables": 3 },
+      { "text": "Stepped in clean,", "syllables": 3 }
+    ],
+    "brag": [
+      { "text": "whole room stopped to stare", "syllables": 5 },
+      { "text": "the DJ cut the track", "syllables": 5 },
+      { "text": "every head turned round", "syllables": 5 }
+    ],
+    "taunt": [
+      { "text": "better luck next time", "syllables": 4 },
+      { "text": "don't wait up tonight", "syllables": 4 }
+    ]
+  }
+}
