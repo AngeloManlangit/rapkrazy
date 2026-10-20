@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { barDuration, beatDuration } from '@/shared/audio'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { barToSeconds, useBeatClock } from '@/shared/audio'
 import type { Beat, LyricLine } from '@/shared/types'
+import { loadBeats } from '@/features/song-catalog/loadBeats'
+import MusicPlayer from '@/features/music-player/MusicPlayer.vue'
 import { ESPEAK_DEFAULTS, EspeakVoice } from '../EspeakVoice'
-import { planLine, planWholeLine, type RapChunk } from '../rapPlan'
-import { drumBar } from './drums'
+import { RobotRapper } from '../RobotRapper'
 
+const { clock } = useBeatClock()
 const voice = new EspeakVoice()
+const rapper = new RobotRapper(voice)
 
 const lyrics = ref(
   [
@@ -16,7 +19,7 @@ const lyrics = ref(
     'Robot in the booth with the rhythm in my feet',
   ].join('\n'),
 )
-const bpm = ref(90)
+const startBar = ref(1)
 const speed = ref(250)
 const pitch = ref(40)
 const language = ref<string>(ESPEAK_DEFAULTS.voice)
@@ -48,31 +51,36 @@ const variant = ref('')
 const mode = ref<'chunked' | 'whole'>('chunked')
 const slotsPerBeat = ref(2)
 const squeeze = ref(true)
-const beatVolume = ref(0.6)
-const voiceVolume = ref(1)
+const robotVolume = ref(1)
 
-const status = ref('Loading eSpeak-NG…')
-const playing = ref(false)
-const currentLine = ref(-1)
+const beats = ref<Beat[]>([])
+const selected = ref('')
+const status = ref('Loading…')
+const activeLine = ref<string | null>(null)
+const activeText = ref('')
 
 const lines = computed<LyricLine[]>(() =>
   lyrics.value
     .split('\n')
     .map((t) => t.trim())
     .filter(Boolean)
-    // Bar 0 is the count-in.
-    .map((text, i) => ({ id: `l${i}`, text, bar: i + 1, bars: 1 })),
+    .map((text, i) => ({ id: `l${i}`, text, bar: startBar.value + i, bars: 1 })),
 )
 
-let ctx: AudioContext | null = null
-let beatGain: GainNode | null = null
-let voiceGain: GainNode | null = null
-let nodes: AudioScheduledSourceNode[] = []
-let raf = 0
-let endTimer: ReturnType<typeof setTimeout> | null = null
+let frame = 0
+const poll = () => {
+  const chunk = rapper.chunkAt(clock.currentTime())
+  activeLine.value = chunk?.lineId ?? null
+  activeText.value = chunk?.text ?? ''
+  frame = requestAnimationFrame(poll)
+}
 
 onMounted(async () => {
+  rapper.start()
+  frame = requestAnimationFrame(poll)
   try {
+    beats.value = await loadBeats()
+    if (beats.value[0]) await pick(beats.value[0].id)
     const list = await voice.listVoices()
     // English first, then the rest alphabetically.
     languages.value = list.sort(
@@ -80,98 +88,54 @@ onMounted(async () => {
         Number(b.code.startsWith('en')) - Number(a.code.startsWith('en')) ||
         a.code.localeCompare(b.code),
     )
-    status.value = 'Ready. Wear headphones or keep volume low.'
   } catch (e) {
-    status.value = `Failed to load eSpeak-NG: ${e}`
+    status.value = `Failed to load: ${e}`
   }
 })
 
 onBeforeUnmount(() => {
-  stop()
-  ctx?.close()
+  rapper.stop()
+  clock.stop()
+  cancelAnimationFrame(frame)
 })
 
-async function play() {
-  // AudioContext must be created/resumed inside the click handler.
-  ctx ??= new AudioContext()
-  await ctx.resume()
-  stop()
+async function pick(id: string) {
+  const beat = beats.value.find((b) => b.id === id)
+  if (!beat) return
+  selected.value = id
+  await clock.load(beat)
+  await prepare()
+}
 
-  const beat: Beat = {
-    id: 'dev',
-    title: 'Dev boom-bap',
-    creator: 'rapkrazy',
-    file: '',
-    bpm: bpm.value,
-    beatsPerBar: 4,
-    offsetMs: 0,
-    totalBars: lines.value.length + 1,
+/** Re-plan and synthesize. Runs on any change, so edits are heard on the next pass. */
+async function prepare() {
+  rapper.options = {
+    voice: variant.value ? `${language.value}+${variant.value}` : language.value,
+    speed: speed.value,
+    pitch: pitch.value,
+    slotsPerBeat: slotsPerBeat.value,
+    squeeze: squeeze.value,
+    wholeLines: mode.value === 'whole',
   }
-  const chunks: RapChunk[] = lines.value.flatMap((l) =>
-    mode.value === 'whole' ? planWholeLine(l, beat) : planLine(l, beat, slotsPerBeat.value),
-  )
-
-  status.value = `Synthesizing ${chunks.length} chunks…`
+  status.value = 'Synthesizing…'
   const started = performance.now()
-  const voiceName = variant.value ? `${language.value}+${variant.value}` : language.value
-  const options = { voice: voiceName, speed: speed.value, pitch: pitch.value }
-  const buffers = await Promise.all(chunks.map((c) => voice.synth(c.text, options)))
-  status.value = `Synthesized in ${Math.round(performance.now() - started)} ms (cached chunks are instant).`
-
-  beatGain = ctx.createGain()
-  beatGain.gain.value = beatVolume.value
-  beatGain.connect(ctx.destination)
-  voiceGain = ctx.createGain()
-  voiceGain.gain.value = voiceVolume.value
-  voiceGain.connect(ctx.destination)
-
-  const t0 = ctx.currentTime + 0.2
-  const barLen = barDuration(beat)
-  for (let bar = 0; bar < beat.totalBars; bar++) {
-    nodes.push(...drumBar(ctx, beatGain, t0 + bar * barLen, beatDuration(beat), bar === 0))
-  }
-
-  chunks.forEach((chunk, i) => {
-    const src = ctx!.createBufferSource()
-    src.buffer = buffers[i]!
-    if (squeeze.value && src.buffer.duration > chunk.slot) {
-      // Speed up (and pitch up) chunks that would spill into the next slot. Capped at 2x.
-      src.playbackRate.value = Math.min(src.buffer.duration / chunk.slot, 2)
-    }
-    src.connect(voiceGain!)
-    src.start(t0 + chunk.start)
-    nodes.push(src)
-  })
-
-  playing.value = true
-  const tick = () => {
-    const t = ctx!.currentTime - t0
-    currentLine.value = Math.floor(t / barLen) - 1
-    raf = requestAnimationFrame(tick)
-  }
-  tick()
-  endTimer = setTimeout(stop, (beat.totalBars * barLen + 0.5) * 1000)
+  await rapper.setLines(lines.value)
+  status.value = `Ready (synth ${Math.round(performance.now() - started)} ms, cached chunks are instant). Wear headphones or keep volume low.`
 }
 
-function stop() {
-  nodes.forEach((n) => {
-    try {
-      n.stop()
-    } catch {
-      // Already stopped.
-    }
-  })
-  nodes = []
-  beatGain?.disconnect()
-  voiceGain?.disconnect()
-  cancelAnimationFrame(raf)
-  if (endTimer) clearTimeout(endTimer)
-  playing.value = false
-  currentLine.value = -1
-}
+let debounce: ReturnType<typeof setTimeout> | null = null
+watch([lines, speed, pitch, language, variant, mode, slotsPerBeat, squeeze], () => {
+  if (debounce) clearTimeout(debounce)
+  debounce = setTimeout(prepare, 400)
+})
+watch(robotVolume, (v) => rapper.setVolume(v))
 
-function setGain(node: GainNode | null, value: number) {
-  if (node) node.gain.value = value
+/** Start one bar before the first line so there is a lead-in. */
+function rapIt() {
+  if (!clock.beat) return
+  clock.seek(barToSeconds(clock.beat, Math.max(startBar.value - 1, 0)))
+  // play() must run inside this click; synthesis is already running or done.
+  clock.play()
 }
 </script>
 
@@ -180,13 +144,23 @@ function setGain(node: GainNode | null, value: number) {
     <h1>Robot voice test (eSpeak-NG)</h1>
     <p class="status">{{ status }}</p>
 
+    <label>
+      Beat
+      <select :value="selected" @change="pick(($event.target as HTMLSelectElement).value)">
+        <option v-for="b in beats" :key="b.id" :value="b.id">{{ b.title }}</option>
+      </select>
+    </label>
+
     <label class="lyrics">
       Lyrics (one line per bar)
-      <textarea v-model="lyrics" rows="6" :disabled="playing" />
+      <textarea v-model="lyrics" rows="6" />
     </label>
 
     <div class="grid">
-      <label>BPM {{ bpm }} <input v-model.number="bpm" type="range" min="60" max="160" /></label>
+      <label>
+        First line on bar {{ startBar + 1 }}
+        <input v-model.number="startBar" type="range" min="0" max="8" />
+      </label>
       <label>
         Speed {{ speed }} wpm
         <input v-model.number="speed" type="range" min="80" max="450" />
@@ -226,36 +200,22 @@ function setGain(node: GainNode | null, value: number) {
         <input v-model="squeeze" type="checkbox" /> Squeeze long chunks to fit
       </label>
       <label>
-        Beat vol
-        <input
-          v-model.number="beatVolume"
-          type="range"
-          min="0"
-          max="1"
-          step="0.05"
-          @input="setGain(beatGain, beatVolume)"
-        />
-      </label>
-      <label>
         Robot vol
-        <input
-          v-model.number="voiceVolume"
-          type="range"
-          min="0"
-          max="1.5"
-          step="0.05"
-          @input="setGain(voiceGain, voiceVolume)"
-        />
+        <input v-model.number="robotVolume" type="range" min="0" max="1.5" step="0.05" />
       </label>
     </div>
 
     <div class="controls">
-      <button :disabled="playing" @click="play">Rap it</button>
-      <button :disabled="!playing" @click="stop">Stop</button>
+      <button :disabled="!clock.beat" @click="rapIt">Rap it</button>
     </div>
 
+    <MusicPlayer />
+
     <ol class="karaoke">
-      <li v-for="(l, i) in lines" :key="l.id" :class="{ on: i === currentLine }">{{ l.text }}</li>
+      <li v-for="l in lines" :key="l.id" :class="{ on: l.id === activeLine }">
+        {{ l.text }}
+        <span v-if="l.id === activeLine" class="word">{{ activeText }}</span>
+      </li>
     </ol>
   </main>
 </template>
@@ -265,23 +225,31 @@ function setGain(node: GainNode | null, value: number) {
   font-family: system-ui, sans-serif;
   padding: 2rem;
   max-width: 48rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+h1 {
+  font-size: 1.5rem;
+  font-weight: bold;
 }
 .status {
   color: #666;
+}
+select,
+textarea {
+  border: 1px solid #999;
+  font: inherit;
 }
 .lyrics {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
-textarea {
-  font: inherit;
-}
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
   gap: 0.75rem;
-  margin: 1rem 0;
 }
 .grid label {
   display: flex;
@@ -292,16 +260,23 @@ textarea {
   flex-direction: row;
   align-items: center;
 }
-.controls {
-  display: flex;
-  gap: 0.5rem;
+.controls button {
+  border: 1px solid #999;
+  border-radius: 0.25rem;
+  padding: 0.25rem 1rem;
+  font-weight: bold;
 }
 .karaoke li {
   padding: 0.25rem 0;
-  transition: color 0.1s;
 }
 .karaoke li.on {
   color: #e33;
   font-weight: bold;
+}
+.word {
+  margin-left: 0.5rem;
+  padding: 0 0.25rem;
+  background: #e33;
+  color: white;
 }
 </style>
