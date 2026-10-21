@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, reactive } from 'vue'
-import { generateTraceryText, assignRhymeScheme, parseSong, type Segment } from './template'
+import { generateTraceryText, assignRhymeScheme, parseSong } from './template'
 
 const values = reactive<Record<string, string>>({});
 const lines = computed(() => parseSong(outputText.value));
@@ -35,8 +35,8 @@ onMounted(() => {
           <span v-if="segment.kind === 'text'">{{ segment.text }}</span>
           <input
             v-else
-            v-model="values[segment.id]"
-            :placeholder="`${segment.type}:${segment.group ? ':' + segment.group : ''}`"
+            v-model= "values[segment.id]"
+            :placeholder="`${segment.type}${segment.group ? ':' + segment.group : ''}`"
             :class="['blank', segment.type]"
             :size="Math.max((values[segment.id] ?? '').length, segment.type.length + 2)"
           />

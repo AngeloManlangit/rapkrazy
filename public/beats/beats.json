@@ -1,0 +1,35 @@
+[
+  {
+    "id": "placeholder-boom-bap",
+    "title": "Placeholder: Boom Bap",
+    "creator": "Rapkrazy (generated placeholder)",
+    "file": "/beats/placeholder-boom-bap.wav",
+    "bpm": 90,
+    "beatsPerBar": 4,
+    "offsetMs": 0,
+    "totalBars": 16,
+    "vibe": "classic"
+  },
+  {
+    "id": "placeholder-lofi-stroll",
+    "title": "Placeholder: Lo-fi Stroll",
+    "creator": "Rapkrazy (generated placeholder)",
+    "file": "/beats/placeholder-lofi-stroll.wav",
+    "bpm": 80,
+    "beatsPerBar": 4,
+    "offsetMs": 500,
+    "totalBars": 16,
+    "vibe": "chill"
+  },
+  {
+    "id": "placeholder-trap-sprint",
+    "title": "Placeholder: Trap Sprint",
+    "creator": "Rapkrazy (generated placeholder)",
+    "file": "/beats/placeholder-trap-sprint.wav",
+    "bpm": 140,
+    "beatsPerBar": 4,
+    "offsetMs": 0,
+    "totalBars": 16,
+    "vibe": "hype"
+  }
+]

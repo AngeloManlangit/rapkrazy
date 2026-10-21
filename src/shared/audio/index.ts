@@ -1,13 +1,14 @@
 import { onScopeDispose, readonly, ref, shallowRef } from 'vue'
 import type { BeatClock } from './BeatClock'
-import { StubBeatClock } from './StubBeatClock'
+import { WebAudioBeatClock } from './WebAudioBeatClock'
 
 export type { BeatClock, Unsubscribe } from './BeatClock'
 export type { RobotVoice, RobotVoiceOptions } from './RobotVoice'
 export * from './timing'
+export { StubBeatClock } from './StubBeatClock'
 
-/** The one clock the whole app shares. Swapped for the Web Audio player in Phase 1. */
-export const beatClock: BeatClock = new StubBeatClock()
+/** The one clock the whole app shares. `StubBeatClock` stays available for tests. */
+export const beatClock: BeatClock = new WebAudioBeatClock()
 
 /**
  * Reactive view of the shared clock for components. `position` updates on every beat and

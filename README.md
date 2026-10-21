@@ -7,7 +7,8 @@ Phone-style party mode.
 
 ## Setup
 
-Requires Node `^22.18.0` or `>=24.12.0`.
+Use Node 22.22.2+ (current 22 LTS) or 24.15+. `.nvmrc` is included, so with nvm run `nvm install` then `nvm use`.
+Older Node 22.x (22.18+) still works but `npm install` prints "Unsupported engine" warnings (from `npm-run-all2`). Node 20 and older are not supported: `vue-router` 5 needs 22.18+.
 
 ```sh
 npm install

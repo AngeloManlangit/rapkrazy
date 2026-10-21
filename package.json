@@ -16,6 +16,8 @@
   "dependencies": {
     "24": "^0.0.0",
     "tracery-grammar": "^2.8.4",
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3",
     "vue": "^3.5.42",
     "vue-router": "^5.3.1"
   },
