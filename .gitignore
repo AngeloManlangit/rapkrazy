@@ -43,3 +43,5 @@ CLAUDE.local.md
 
 # API Key stuff
 .env
+# Session log
+Log.md

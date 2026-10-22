@@ -75,3 +75,22 @@ export interface Verse {
   clipPath?: string
   latencyMs?: number
 }
+
+// --- AI Writer ---
+
+/** What the player fills in before generating. */
+export interface WriterInputs {
+  subject: string // a noun: "crown", "night bus"
+  action: string // a verb: "climb", "outrun"
+  adjective: string // "golden", "restless"
+  topic: string // what the song is about
+}
+
+/** What comes back. `lines` maps 1:1 to bars on the writing board. */
+export interface GeneratedLyrics {
+  title: string
+  lines: string[]
+  fallback?: boolean
+}
+
+export type WriterStatus = 'form' | 'loading' | 'result' | 'error'
