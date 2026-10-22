@@ -76,6 +76,34 @@ export interface Verse {
   latencyMs?: number
 }
 
+/** Collab lobby state, one row per room in Supabase. */
+export type RoomStatus = 'lobby' | 'writing' | 'reveal'
+
+export interface Room {
+  code: string
+  hostId: string
+  beatId: string | null
+  status: RoomStatus
+  turnIndex: number
+  totalTurns: number
+  turnSeconds: number
+  rounds: number
+  /** Epoch ms when the current turn ends, null outside the writing phase. */
+  turnDeadline: number | null
+}
+
+/** A seated player. `seat` decides the writing order. */
+export interface RoomPlayer extends Player {
+  seat: number
+}
+
+/** One line written in a turn. */
+export interface RoomLine {
+  turnIndex: number
+  playerId: string
+  text: string
+}
+
 // --- AI Writer ---
 
 /** What the player fills in before generating. */

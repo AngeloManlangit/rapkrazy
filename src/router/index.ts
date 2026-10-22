@@ -8,6 +8,7 @@ const router = createRouter({
     { path: '/', name: 'home', component: HomePage },
     { path: '/write', name: 'write', component: () => import('@/pages/WritePage.vue') },
     { path: '/collab', name: 'collab', component: () => import('@/pages/CollabPage.vue') },
+    { path: '/settings', name: 'settings', component: () => import('@/pages/SettingsPage.vue') },
     {
       path: '/dev/clock',
       name: 'dev-clock',

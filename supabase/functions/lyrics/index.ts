@@ -14,6 +14,11 @@ const json = (body: unknown, status = 200) =>
     headers: { ...cors, 'Content-Type': 'application/json' },
   })
 
+const SYSTEM_FAMILY =
+  'You are a rap lyricist for a family-friendly party game. Original lyrics only, never quote real songs. No profanity, slurs, or hate. Return JSON only.'
+const SYSTEM_EXPLICIT =
+  'You are a battle-rap lyricist for an adult party game. Original lyrics only, never quote real songs. Profanity, cussing and savage trash-talk are welcome. Never use slurs, never attack people for race, religion, gender, sexuality or disability, and never threaten real violence. Keep the insults aimed at the rival in the song. Return JSON only.'
+
 const clean = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max)
 
 Deno.serve(async (req) => {
@@ -47,7 +52,7 @@ Deno.serve(async (req) => {
         systemInstruction: {
           parts: [
             {
-              text: 'You are a rap lyricist for a family-friendly party game. Original lyrics only, never quote real songs. No profanity, slurs, or hate. Return JSON only.',
+              text: body.mode === 'explicit' ? SYSTEM_EXPLICIT : SYSTEM_FAMILY,
             },
           ],
         },
