@@ -67,9 +67,9 @@ const hoveredMenu = ref({
           @mouseleave="hoveredMenu.settings = false"
         >
           <img 
-            :src="hoveredMenu.collab ? settingsFast : settingsSlow" 
-            class="object-contain w-2/5 transition-transform duration-300 hover:scale-150" 
-            alt="Collab"
+            :src="hoveredMenu.settings ? settingsFast : settingsSlow"
+            class="object-contain w-2/5 transition-transform duration-300 hover:scale-150"
+            alt="Settings"
           />
         </RouterLink>
       </nav>
@@ -80,6 +80,8 @@ const hoveredMenu = ref({
         <RouterLink to="/dev/clock" class="hover:underline">Beat clock</RouterLink>
         ·
         <RouterLink to="/dev/robot" class="hover:underline">Robot voice</RouterLink>
+        ·
+        <RouterLink to="/dev/template-gen" class="hover:underline">Template gen</RouterLink>
       </nav>
     </section>
   </main>

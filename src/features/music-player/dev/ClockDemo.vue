@@ -1,49 +1,27 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { useBeatClock } from '@/shared/audio'
 import type { Beat } from '@/shared/types'
-import { loadBeats } from '@/features/song-catalog/loadBeats'
+import SongCatalog from '@/features/song-catalog/SongCatalog.vue'
 import MusicPlayer from '../MusicPlayer.vue'
 
 const { clock, position } = useBeatClock()
-const beats = ref<Beat[]>([])
-const selected = ref('')
-const error = ref('')
-
-onMounted(async () => {
-  try {
-    beats.value = await loadBeats()
-    if (beats.value[0]) await pick(beats.value[0].id)
-  } catch (e) {
-    error.value = (e as Error).message
-  }
-})
-
-async function pick(id: string) {
-  const beat = beats.value.find((b) => b.id === id)
-  if (!beat) return
-  selected.value = id
-  error.value = ''
-  try {
-    await clock.load(beat)
-  } catch (e) {
-    error.value = (e as Error).message
-  }
-}
+const confirmed = ref<Beat | null>(null)
 </script>
 
 <template>
   <main class="demo">
-    <h1>Music player demo</h1>
-    <p>Web Audio BeatClock. The dots should flash in time with the kick and snare.</p>
+    <h1>Song select + music player demo</h1>
+    <p>
+      Click a song (or use ↑/↓ in the list) to preview it. The dots should flash in time with the
+      kick and snare. Enter or double click picks it.
+    </p>
 
-    <label>
-      Beat
-      <select :value="selected" @change="pick(($event.target as HTMLSelectElement).value)">
-        <option v-for="b in beats" :key="b.id" :value="b.id">{{ b.title }}</option>
-      </select>
-    </label>
-    <p v-if="error" class="error">{{ error }}</p>
+    <SongCatalog @confirm="confirmed = $event" />
+
+    <p v-if="confirmed" class="picked">
+      Picked <strong>{{ confirmed.title }}</strong> (the real page would open the writing board).
+    </p>
 
     <div class="dots">
       <span
@@ -60,8 +38,9 @@ async function pick(id: string) {
 <style scoped>
 .demo {
   font-family: system-ui, sans-serif;
-  padding: 2rem;
-  max-width: 40rem;
+  padding: 2rem 1rem;
+  max-width: 64rem;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -70,12 +49,8 @@ h1 {
   font-size: 1.5rem;
   font-weight: bold;
 }
-select {
-  border: 1px solid #999;
-  margin-left: 0.5rem;
-}
-.error {
-  color: #c00;
+.picked {
+  color: #070;
 }
 .dots {
   display: flex;
