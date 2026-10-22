@@ -7,7 +7,7 @@ import { flowOf } from './flow'
 // where you type.
 
 const lines = defineModel<string[]>('lines', { required: true })
-defineProps<{
+const props = defineProps<{
   /** Bar playing now, -1 when stopped. */
   activeBar: number
   /** Beat within the active bar. */
@@ -16,7 +16,30 @@ defineProps<{
 }>()
 const emit = defineEmits<{ focusLine: [el: HTMLElement | null] }>()
 
+const list = ref<HTMLOListElement | null>(null)
 const inputs = ref<HTMLTextAreaElement[]>([])
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
+
+/**
+ * The line list scrolls inside the sheet so the page fits one screen. While playing, follow the
+ * active bar once it nears the bottom (or is above the view), parking it a third of the way
+ * down. Skipped while the player is typing in the sheet, so the line under the cursor stays put.
+ */
+watch(
+  () => props.activeBar,
+  (bar) => {
+    const box = list.value
+    const li = box?.children[bar] as HTMLElement | undefined
+    if (!box || !li || box.contains(document.activeElement)) return
+    const top = li.offsetTop
+    const bottom = top + li.offsetHeight
+    if (top >= box.scrollTop && bottom <= box.scrollTop + box.clientHeight * 0.75) return
+    box.scrollTo({
+      top: top - box.clientHeight / 3,
+      behavior: reduceMotion ? 'auto' : 'smooth',
+    })
+  },
+)
 
 /** Grow each textarea to its content so long lines wrap instead of scrolling. */
 function fit(ta: HTMLTextAreaElement) {
@@ -35,7 +58,8 @@ function onInput(i: number, e: Event) {
 }
 
 function nextLine(i: number) {
-  inputs.value[i + 1]?.focus()
+  // Ref arrays from v-for are not guaranteed to be in list order, so go by position.
+  list.value?.children[i + 1]?.querySelector('textarea')?.focus()
 }
 
 watch(lines, () => nextTick(fitAll))
@@ -63,7 +87,7 @@ onBeforeUnmount(() => {
       <h1 class="toon grad-pink">Verse 1</h1>
       <span>One line per bar · dots are the {{ beatsPerBar }} beats</span>
     </div>
-    <ol class="lines">
+    <ol ref="list" class="lines">
       <li v-for="(text, i) in lines" :key="i" class="line" :class="{ active: i === activeBar }">
         <span class="num toon">{{ i + 1 }}</span>
         <textarea
@@ -104,8 +128,12 @@ onBeforeUnmount(() => {
   --fill: var(--cel-paper);
   border-radius: 12px 16px 10px 18px;
   color: var(--text-ink);
-  padding: 24px 24px 28px 58px;
+  padding: 24px 24px 22px 58px;
   transform: rotate(0.6deg);
+  /* fill the screen below the top bar; only the line list scrolls */
+  display: flex;
+  flex-direction: column;
+  height: max(440px, calc(100dvh - 190px));
 }
 .sheet::before {
   background:
@@ -164,17 +192,27 @@ onBeforeUnmount(() => {
   font-weight: 500;
   font-size: 13px;
 }
+/* Scroll box. Negative margins + padding pull the line numbers and the highlighter's overhang
+   inside it so they aren't clipped; the mask fades lines at the edges as a scroll hint. */
 .lines {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   list-style: none;
-  margin: 0;
-  padding: 0;
+  margin: 0 -14px 0 -54px;
+  padding: 10px 14px 18px 54px;
   display: flex;
   flex-direction: column;
+  mask-image: linear-gradient(transparent, #000 12px, #000 calc(100% - 26px), transparent);
+  scrollbar-width: thin;
+  scrollbar-color: var(--pink) transparent;
 }
 .line {
   position: relative;
   isolation: isolate;
-  padding: 10px 0 16px;
+  padding: 8px 0 14px;
 }
 /* highlighter swipe on the bar being played */
 .line::before {
@@ -292,7 +330,8 @@ textarea::placeholder {
   --flow-bg: linear-gradient(168deg, #eef1f8 0 25%, var(--metal) 25% 70%, #9aa3bd 70%);
 }
 .legend {
-  margin-top: 18px;
+  flex: none;
+  margin-top: 10px;
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
@@ -305,10 +344,21 @@ textarea::placeholder {
   margin-left: 0;
   font-size: 11px;
 }
+/* stacked layouts scroll the page anyway; keep the sheet shorter than the screen */
+@media (max-width: 1000px) {
+  .sheet {
+    height: min(75dvh, 760px);
+    min-height: 420px;
+  }
+}
 @media (max-width: 640px) {
   .sheet {
     padding: 22px 16px 24px 50px;
     transform: none;
+  }
+  .lines {
+    margin-left: -46px;
+    padding-left: 46px;
   }
   .sheet::before {
     background:
