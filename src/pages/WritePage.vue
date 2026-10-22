@@ -17,6 +17,7 @@ import { RobotRapper } from '@/features/robot/RobotRapper'
 import LyricSheet from '@/features/writing-board/LyricSheet.vue'
 import WritingTools from '@/features/writing-board/WritingTools.vue'
 import { randomTemplate } from '@/features/writing-board/randomTemplate'
+import AiWriterPanel from '@/features/ai-writer/AiWriterPanel.vue'
 import SoundBoard from '@/features/soundboard/SoundBoard.vue'
 import write1 from '@/assets/write/write-1.webp'
 import write2 from '@/assets/write/write-2.webp'
@@ -115,6 +116,15 @@ function toggleRap() {
   clock.play()
 }
 
+const aiWriter = useTemplateRef<InstanceType<typeof AiWriterPanel>>('aiWriter')
+
+/** Put the AI bars on the lyric sheet, one per bar. */
+function onAiLyrics(payload: { title: string; lines: string[] }) {
+  lines.value = sized(payload.lines, lines.value.length)
+  robot.value?.react('happy', 1200)
+  toast(`"${payload.title}" added to the sheet`)
+}
+
 function loadTemplate() {
   try {
     const n = lines.value.length
@@ -170,7 +180,13 @@ onBeforeUnmount(() => {
         <WritingTools
           class="area-tools"
           @template="loadTemplate"
-          @ghostwriter="toast('The AI ghostwriter is not connected yet')"
+          @ghostwriter="aiWriter?.open()"
+        />
+        <AiWriterPanel
+          ref="aiWriter"
+          :bars="lines.length"
+          :bpm="beat?.bpm"
+          @add-to-board="onAiLyrics"
         />
         <SoundBoard
           class="area-sound"
