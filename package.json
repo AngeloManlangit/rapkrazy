@@ -14,7 +14,6 @@
     "check": "run-s type-check lint"
   },
   "dependencies": {
-    "24": "^0.0.0",
     "tracery-grammar": "^2.8.4",
     "@tailwindcss/vite": "^4.3.3",
     "tailwindcss": "^4.3.3",
