@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { useBeatClock } from '@/shared/audio'
 import type { Beat } from '@/shared/types'
 import { useSongCatalog } from '@/features/song-catalog/useSongCatalog'
@@ -58,6 +58,24 @@ function toggle() {
   else clock.play()
 }
 
+/* The picker floats, so close it on a click outside the player or on Escape. */
+const panel = ref<HTMLElement | null>(null)
+const onOutside = (e: PointerEvent) => {
+  if (!panel.value?.contains(e.target as Node)) open.value = false
+}
+const onEscape = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') open.value = false
+}
+watch(open, (on) => {
+  const method = on ? addEventListener : removeEventListener
+  method('pointerdown', onOutside as EventListener)
+  method('keydown', onEscape as EventListener)
+})
+onBeforeUnmount(() => {
+  removeEventListener('pointerdown', onOutside as EventListener)
+  removeEventListener('keydown', onEscape as EventListener)
+})
+
 function pick(b: Beat) {
   open.value = false
   if (b.id === beat.value?.id) return
@@ -70,7 +88,7 @@ function pick(b: Beat) {
 </script>
 
 <template>
-  <section class="panel ink halftone player" aria-label="Music player">
+  <section ref="panel" class="panel ink halftone player" aria-label="Music player">
     <div class="player-top">
       <div>
         <span class="tag">Music player</span>
@@ -273,9 +291,18 @@ function pick(b: Beat) {
   transform: scaleY(1.6);
 }
 
-/* Song picker (opens from CHOOSE SONG) */
+/* Song picker (opens from CHOOSE SONG). Floats over the panel instead of pushing it taller,
+   so the grid row (and the soundboard under the helpers) keeps its size. */
+.player {
+  z-index: 5;
+}
 .picker {
   --fill: var(--cel-paper);
+  position: absolute;
+  top: 92px;
+  left: 12px;
+  right: 12px;
+  z-index: 3;
   border-radius: 16px 22px 14px 24px;
   padding: 12px;
   display: grid;
