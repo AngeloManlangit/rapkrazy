@@ -1,0 +1,204 @@
+/*
+ * Rapkrazy ink kit: cel-shaded panels with a hand-inked outline, used by /write.
+ * Wrap a page in `.rk` and mount <InkFilters /> once so `filter: url(#rough)` resolves.
+ * Outlines are a thin ring plus a heavy offset ring (weight pools on the shadow side), drawn on
+ * ::before through the rough filter so text stays crisp.
+ */
+.rk {
+  --night: #24093a;
+  --ink: #0b0614;
+  --paper: #fff7e3;
+  --paper-line: #f0c9e6;
+  --yellow: #fff200;
+  --cyan: #18c3e1;
+  --pink: #ff3da5;
+  --violet: #5a1fd1;
+  --mint: #3dffa2;
+  --metal: #c3cbe0;
+  --text: #fff7e3;
+  --text-ink: #0b0614;
+  --display: 'Luckiest Guy', 'Arial Black', Impact, sans-serif;
+  --marker: 'Permanent Marker', 'Comic Sans MS', 'Segoe Print', cursive;
+  --ui: 'Rubik', system-ui, 'Segoe UI', sans-serif;
+  /* cel-shaded fills: hard light band, base, hard shadow band */
+  --cel-paper: linear-gradient(168deg, #ffffff 0 18%, #fff7e3 18% 74%, #f3dfb5 74%);
+  --cel-yellow: linear-gradient(168deg, #fffbb0 0 22%, #fff200 22% 70%, #ffc400 70%);
+  --cel-pink: linear-gradient(168deg, #ffa3d6 0 22%, #ff3da5 22% 70%, #d81b84 70%);
+  --cel-cyan: linear-gradient(
+    165deg,
+    rgba(150, 240, 252, 0.95) 0 16%,
+    rgba(24, 195, 225, 0.94) 16% 72%,
+    rgba(10, 150, 190, 0.96) 72%
+  );
+  /* inner bands inside the outline: rim light on top, core shadow at the bottom */
+  --shade: inset 0 5px 0 rgba(255, 255, 255, 0.55), inset 0 -8px 0 rgba(11, 6, 20, 0.2);
+  --shade-sm: inset 0 3px 0 rgba(255, 255, 255, 0.55), inset 0 -4px 0 rgba(11, 6, 20, 0.2);
+  --line: var(--shade), 0 0 0 3px var(--ink), 7px 9px 0 3px var(--ink);
+  --line-lift: var(--shade), 0 0 0 3px var(--ink), 11px 14px 0 3px var(--ink);
+  --line-press:
+    inset 0 -3px 0 rgba(255, 255, 255, 0.35), inset 0 6px 0 rgba(11, 6, 20, 0.22),
+    0 0 0 3px var(--ink), 2px 3px 0 3px var(--ink);
+  --line-sm: var(--shade-sm), 0 0 0 2.5px var(--ink), 4px 6px 0 2.5px var(--ink);
+  --spring: cubic-bezier(0.34, 1.7, 0.5, 1);
+
+  color: var(--text);
+  font-family: var(--ui);
+  font-size: 15px;
+}
+.rk button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.rk :focus-visible {
+  outline: 4px solid var(--yellow);
+  outline-offset: 5px;
+}
+
+/* The ink body: element keeps text crisp, ::before carries fill + outline through the filter */
+.rk .ink {
+  position: relative;
+  isolation: isolate;
+  background: none;
+  border: 0;
+}
+.rk .ink::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--fill, var(--cel-paper));
+  box-shadow: var(--line);
+  filter: url(#rough);
+  transition: box-shadow 0.18s var(--spring);
+}
+/* The white specular swoosh every cartoon button has */
+.rk .glint::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  top: 11%;
+  left: 14%;
+  width: 30%;
+  height: 16%;
+  border-radius: 50%;
+  border-top: 4px solid rgba(255, 255, 255, 0.9);
+  transform: rotate(-24deg);
+}
+/* Halftone dots in the shadow half of big panels */
+.rk .halftone::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(rgba(11, 6, 20, 0.22) 1.3px, transparent 1.8px) 0 0 / 9px 9px;
+  mask-image: linear-gradient(160deg, transparent 52%, #000 92%);
+}
+
+/* Angelo's two-frame titles: second frame flips on and off */
+.rk .boil {
+  position: relative;
+  display: block;
+}
+.rk .boil img + img {
+  position: absolute;
+  inset: 0;
+  animation: rk-frame 0.6s steps(1, end) infinite;
+}
+@keyframes rk-frame {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.rk .panel {
+  --fill: var(--cel-cyan);
+  border-radius: 28px 18px 32px 16px / 18px 30px 16px 26px;
+  color: var(--text-ink);
+  padding: 18px;
+}
+.rk .tag {
+  display: inline-block;
+  font-family: var(--display);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  background: var(--ink);
+  color: var(--yellow);
+  padding: 5px 12px 2px;
+  border-radius: 6px 10px 5px 12px;
+  transform: rotate(-3deg);
+  box-shadow: 3px 3px 0 var(--pink);
+}
+
+/* Display type: stroked, chunky, offset shadow thicker than the stroke */
+.rk .toon {
+  font-family: var(--display);
+  letter-spacing: 0.06em;
+  color: var(--paper);
+  -webkit-text-stroke: 1.5px var(--ink);
+  paint-order: stroke fill;
+  text-shadow: 2px 3px 0 var(--ink);
+}
+/* Two-tone cel lettering; drop-shadow because the fill is clipped to the text */
+.rk .toon.grad,
+.rk .toon.grad-pink {
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  -webkit-text-stroke: 1px var(--ink);
+  filter: drop-shadow(2px 3px 0 var(--ink));
+}
+.rk .toon.grad {
+  background-image: linear-gradient(180deg, #ffffff 0 42%, var(--yellow) 42% 70%, #ffb300 70%);
+}
+.rk .toon.grad-pink {
+  background-image: linear-gradient(180deg, #ffa3d6 0 40%, var(--pink) 40% 68%, var(--violet) 68%);
+}
+
+/* Round cartoon button (player transport) and pad (soundboard) */
+.rk .btn-round {
+  --fill: var(--cel-paper);
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50% 46% 52% 48%;
+  color: var(--text-ink);
+  transition: transform 0.2s var(--spring);
+}
+.rk .btn-round:hover {
+  transform: rotate(-8deg) scale(1.08);
+}
+.rk .btn-round:hover::before,
+.rk .btn-pad:hover::before {
+  box-shadow: var(--line-lift);
+}
+.rk .btn-round:active,
+.rk .btn-pad:active {
+  transform: translate(4px, 5px) scale(1.06, 0.92);
+  transition-duration: 0.06s;
+}
+.rk .btn-round:active::before,
+.rk .btn-pad:active::before {
+  box-shadow: var(--line-press);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rk *,
+  .rk *::before,
+  .rk *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .rk .boil img + img {
+    display: none;
+  }
+}
