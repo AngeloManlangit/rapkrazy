@@ -204,6 +204,33 @@ onBeforeUnmount(() => {
   <section class="robot-stage" :class="{ live: isPlaying || grooving }" aria-label="Robot rapper">
     <div :key="bubblePop" class="bubble ink" :class="{ pop: bubblePop > 0 }" aria-live="polite">
       {{ bubble }}
+      <!-- Paper tail with an ink outline: the fill reaches up over the bubble's bottom line so
+           the two read as one shape; only the two sides get a stroke. -->
+      <svg class="tail" viewBox="0 -5 30 30" aria-hidden="true">
+        <!-- the bubble's bottom: its shade band (tan under the ink inset), then its tan base -->
+        <defs>
+          <linearGradient
+            id="bubble-tail-shade"
+            x1="0"
+            y1="-4"
+            x2="0"
+            y2="24"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0.3" stop-color="#c5b495" />
+            <stop offset="0.3" stop-color="#f3dfb5" />
+          </linearGradient>
+        </defs>
+        <polygon points="3,-4 25,-4 26,0 21,24 2,0" fill="url(#bubble-tail-shade)" />
+        <polyline
+          points="2,0 21,24 26,0"
+          fill="none"
+          stroke="#0b0614"
+          stroke-width="3"
+          stroke-linejoin="round"
+          stroke-linecap="round"
+        />
+      </svg>
     </div>
     <button
       ref="robotEl"
@@ -526,17 +553,22 @@ onBeforeUnmount(() => {
   letter-spacing: 0.03em;
   padding: 10px 18px 5px;
   white-space: nowrap;
+  /* wide enough that the tail and its shadow always sit under the bubble */
+  min-width: 70px;
+  text-align: center;
   max-width: 92%;
 }
-.bubble::after {
-  content: '';
+.tail {
   position: absolute;
-  left: 62%;
-  bottom: -21px;
-  width: 28px;
-  height: 24px;
-  background: var(--ink);
-  clip-path: polygon(0 0, 100% 0, 82% 100%);
+  /* a fixed distance from the left, so even a one-word bubble has room for the whole tail */
+  left: 16px;
+  /* the fill's top edge covers the bubble's 3px outline below its bottom edge */
+  bottom: -28px;
+  width: 30px;
+  height: 30px;
+  overflow: visible;
+  /* close to the bubble's offset ink shadow, so the tail sits on the same "paper" */
+  filter: drop-shadow(5px 7px 0 var(--ink));
 }
 .bubble.pop {
   animation: pop 0.22s var(--spring);
