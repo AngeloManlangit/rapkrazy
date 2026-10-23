@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import LoadingBars from './LoadingBars.vue'
 import { useAiWriter } from './useAiWriter'
+import { useContentMode } from '@/shared/contentMode'
 
 const props = defineProps<{
     bars?: number // current beat's bar count
@@ -13,11 +14,13 @@ const emit = defineEmits<{
     (e: 'add-to-board', payload: { title: string; lines: string[] }): void
 }>()
 
+const { mode } = useContentMode()
 const dialog = ref<HTMLDialogElement | null>(null)
 const { inputs, status, result, error, canSubmit, generate, backToForm, reset } = useAiWriter(() => ({
     bars: props.bars,
     bpm: props.bpm,
     syllablesPerBar: props.syllablesPerBar,
+    mode: mode.value,
 }))
 
 const open = () => dialog.value?.showModal()

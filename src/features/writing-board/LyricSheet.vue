@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
+import NotebookSheet from '@/shared/ui/NotebookSheet.vue'
+import BarRow from '@/shared/ui/BarRow.vue'
 import { flowOf } from './flow'
 import {type RhymeStatus } from './rhymeTracker'
 
@@ -20,7 +22,8 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ focusLine: [el: HTMLElement | null] }>()
 
-const list = ref<HTMLOListElement | null>(null)
+const sheet = useTemplateRef<InstanceType<typeof NotebookSheet>>('sheet')
+const list = computed(() => sheet.value?.list ?? null)
 const inputs = ref<HTMLTextAreaElement[]>([])
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
 const letterOf = (g: string | null | undefined) => g?.replace(/^\d+/, '') ?? ''
@@ -96,180 +99,59 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="sheet ink">
-    <span class="tape tape-l" aria-hidden="true"></span>
-    <span class="tape tape-r" aria-hidden="true"></span>
-    <div class="sheet-head">
-      <h1 class="toon grad-pink">Verse 1</h1>
-      <span>One line per bar · dots are the {{ beatsPerBar }} beats</span>
-    </div>
-    <ol ref="list" class="lines">
-      <li v-for="(text, i) in lines" :key="i" class="line" :class="{ active: i === activeBar }">
-        <span class="num toon">{{ i + 1 }}</span>
-        <textarea
-          ref="inputs"
-          :value="text"
-          rows="1"
-          :aria-label="`Bar ${i + 1} lyrics`"
-          :placeholder="`Bar ${i + 1}…`"
-          @input="onInput(i, $event)"
-          @keydown.enter.prevent="nextLine(i)"
-          @focus="emit('focusLine', $event.target as HTMLElement)"
-          @blur="emit('focusLine', null)"
-        ></textarea>
-        <div class="beats-row">
-          <div class="dots" aria-hidden="true">
-            <i
-              v-for="b in beatsPerBar"
-              :key="b"
-              :class="{ hit: i === activeBar && b - 1 === beat }"
-            ></i>
-          </div>
-          <span
-            v-if="showRhyme(i)"
-            class="rhyme"
-            :class="[`s-${rhymes[i]}`, `g-${letterOf(groups[i])}`]"
-            :title="hintOf(i)"
-            :aria-label="`Rhyme ${letterOf(groups[i])}: ${hintOf(i)}`"
-          >
-            {{ letterOf(groups[i]) }}<b>{{ STATUS[rhymes[i] ?? 'none'].mark }}</b>
-          </span>
-          <span class="flow" :class="flowOf(text).kind">{{ flowOf(text).label }}</span>
-        </div>
-      </li>
-    </ol>
-    <div class="legend" aria-label="Flow meter legend">
-      <span class="flow thin">Too empty</span>
-      <span class="flow ok">On flow</span>
-      <span class="flow busy">Busy</span>
-      <span class="flow crowd">Crowded</span>
-      <span class="rhyme g-A s-perfect">A✓ Perfect</span>
-      <span class="rhyme g-A s-slant">A≈ Slant</span>
-      <span class="rhyme g-A s-miss">A✗ Miss</span>
-      <span>syllables per bar, so you know if a line fits before the robot raps it</span>
-    </div>
-  </div>
+    <NotebookSheet
+    ref="sheet"
+    title="Verse 1"
+    :note="`One line per bar · dots are the ${beatsPerBar} beats`"
+  >
+    <BarRow
+      v-for="(text, i) in lines"
+      :key="i"
+      :num="i + 1"
+      :active="i === activeBar"
+      :hit="i === activeBar ? beat : -1"
+      :beats="beatsPerBar"
+    >
+      <textarea
+        ref="inputs"
+        :value="text"
+        rows="1"
+        :aria-label="`Bar ${i + 1} lyrics`"
+        :placeholder="`Bar ${i + 1}…`"
+        @input="onInput(i, $event)"
+        @keydown.enter.prevent="nextLine(i)"
+        @focus="emit('focusLine', $event.target as HTMLElement)"
+        @blur="emit('focusLine', null)"
+      ></textarea>
+      <template #sticker>
+        <span
+          v-if="showRhyme(i)"
+          class="ink-sticker rhyme"
+          :class="[`s-${rhymes[i]}`, `g-${letterOf(groups[i])}`]"
+          :title="hintOf(i)"
+          :aria-label="`Rhyme ${letterOf(groups[i])}: ${hintOf(i)}`"
+        >
+          {{ letterOf(groups[i]) }}<b>{{ STATUS[rhymes[i] ?? 'none'].mark }}</b>
+        </span>
+        <span class="ink-sticker" :class="flowOf(text).kind">{{ flowOf(text).label }}</span>
+      </template>
+    </BarRow>
+    <template #footer>
+      <div class="legend" aria-label="Flow meter legend">
+        <span class="ink-sticker thin">Too empty</span>
+        <span class="ink-sticker ok">On flow</span>
+        <span class="ink-sticker busy">Busy</span>
+        <span class="ink-sticker crowd">Crowded</span>
+        <span class="ink-sticker rhyme g-A s-perfect">A✓ Perfect</span>
+        <span class="ink-sticker rhyme g-A s-slant">A≈ Slant</span>
+        <span class="ink-sticker rhyme g-A s-miss">A✗ Miss</span>
+        <span>syllables per bar, so you know if a line fits before the robot raps it</span>
+      </div>
+    </template>
+  </NotebookSheet>
 </template>
 
 <style scoped>
-.sheet {
-  --fill: var(--cel-paper);
-  border-radius: 12px 16px 10px 18px;
-  color: var(--text-ink);
-  padding: 24px 24px 22px 58px;
-  transform: rotate(0.6deg);
-  /* fill the screen below the top bar; only the line list scrolls */
-  display: flex;
-  flex-direction: column;
-  height: max(440px, calc(100dvh - 190px));
-}
-.sheet::before {
-  background:
-    linear-gradient(
-      to right,
-      transparent 38px,
-      rgba(255, 61, 165, 0.7) 38px 41px,
-      transparent 41px
-    ),
-    repeating-linear-gradient(to bottom, transparent 0 63px, var(--paper-line) 63px 65px),
-    var(--paper);
-  box-shadow:
-    0 0 0 3.5px var(--ink),
-    12px 14px 0 3.5px var(--ink);
-}
-/* Washi tape holding the sheet */
-.tape {
-  position: absolute;
-  top: -15px;
-  z-index: 2;
-  width: 100px;
-  height: 30px;
-  background: repeating-linear-gradient(
-    45deg,
-    rgba(255, 61, 165, 0.82) 0 9px,
-    rgba(255, 242, 0, 0.82) 9px 18px
-  );
-  box-shadow:
-    0 0 0 2.5px var(--ink),
-    3px 4px 0 2.5px var(--ink);
-  clip-path: polygon(3% 0, 97% 4%, 100% 50%, 96% 100%, 2% 96%, 0 50%);
-}
-.tape-l {
-  left: 26px;
-  transform: rotate(-9deg);
-}
-.tape-r {
-  right: 34px;
-  transform: rotate(7deg);
-}
-.sheet-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-.sheet-head h1 {
-  margin: 0;
-  font-size: clamp(30px, 3.2vw, 40px);
-  text-wrap: balance;
-  transform: rotate(-2deg);
-}
-.sheet-head span {
-  font-weight: 500;
-  font-size: 13px;
-}
-/* Scroll box. Negative margins + padding pull the line numbers and the highlighter's overhang
-   inside it so they aren't clipped; the mask fades lines at the edges as a scroll hint. */
-.lines {
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  list-style: none;
-  margin: 0 -14px 0 -54px;
-  padding: 10px 14px 18px 54px;
-  display: flex;
-  flex-direction: column;
-  mask-image: linear-gradient(transparent, #000 12px, #000 calc(100% - 26px), transparent);
-  scrollbar-width: thin;
-  scrollbar-color: var(--pink) transparent;
-}
-.line {
-  position: relative;
-  isolation: isolate;
-  padding: 8px 0 14px;
-}
-/* highlighter swipe on the bar being played */
-.line::before {
-  content: '';
-  position: absolute;
-  inset: 2px -8px 6px;
-  z-index: -1;
-  filter: url(#rough);
-  background: var(--yellow);
-  border-radius: 6px 14px 8px 12px;
-  box-shadow:
-    0 0 0 2.5px var(--ink),
-    4px 5px 0 2.5px var(--ink);
-  transform: scaleX(0) rotate(-0.8deg);
-  transform-origin: left center;
-  transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
-}
-.line.active::before {
-  transform: scaleX(1) rotate(-0.8deg);
-}
-.num {
-  position: absolute;
-  left: -48px;
-  top: 13px;
-  width: 30px;
-  text-align: right;
-  font-size: 20px;
-  color: var(--pink);
-}
 /* tapered, wavy pen stroke instead of a ruler-straight border */
 textarea {
   display: block;
@@ -421,7 +303,7 @@ textarea::placeholder {
   font-size: 12px;
   font-weight: 500;
 }
-.legend .flow {
+.legend .ink-sticker {
   min-width: 0;
   margin-left: 0;
   font-size: 11px;

@@ -1,11 +1,14 @@
 ﻿import { supabase } from '@/shared/SupabaseClient'
 import type { GeneratedLyrics, WriterInputs } from '@/shared/types'
+import type { ContentMode } from '@/shared/contentMode'
 
 /** Optional beat info so the AI matches the current beat. */
 export interface WriterContext {
     bars?: number
     bpm?: number
     syllablesPerBar?: number
+    /** family (default) or explicit. */
+    mode?: ContentMode
 }
 
 /*
@@ -21,7 +24,7 @@ const DEV_GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL ?? 'gemini-3.5-flash'
 
 export async function requestLyrics(inputs: WriterInputs, ctx: WriterContext = {}): Promise<GeneratedLyrics> {
     const bars = ctx.bars ?? 8
-    if (FORCE_CANNED) return cannedVerse(inputs, bars)
+    if (FORCE_CANNED) return cannedVerse(inputs, bars, ctx.mode)
 
     try {
         if (DEV_GEMINI_KEY) return await devGemini(inputs, ctx, DEV_GEMINI_KEY)
@@ -30,7 +33,7 @@ export async function requestLyrics(inputs: WriterInputs, ctx: WriterContext = {
         // Architecture rule: on any error or rate limit, fall back. Never show an error screen.
         console.warn('AI Writer fell back to canned lyrics:', e)
     }
-    return cannedVerse(inputs, bars)
+    return cannedVerse(inputs, bars, ctx.mode)
 }
 
 async function viaEdgeFunction(inputs: WriterInputs, ctx: WriterContext): Promise<GeneratedLyrics> {
@@ -44,6 +47,7 @@ async function viaEdgeFunction(inputs: WriterInputs, ctx: WriterContext): Promis
         bars: ctx.bars ?? 8,
         bpm: ctx.bpm,
         syllablesPerBar: ctx.syllablesPerBar,
+        mode: ctx.mode ?? 'family',
         },
     })
     if (error) throw error
@@ -57,7 +61,7 @@ async function viaEdgeFunction(inputs: WriterInputs, ctx: WriterContext): Promis
 */
 async function devGemini(inputs: WriterInputs, ctx: WriterContext, apiKey: string): Promise<GeneratedLyrics> {
     const bars = ctx.bars ?? 8
-    const syl = ctx.syllablesPerBar ?? 10
+    const syl = ctx.syllablesPerBar ?? 9
     const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${DEV_GEMINI_MODEL}:generateContent`,
         {
@@ -66,16 +70,24 @@ async function devGemini(inputs: WriterInputs, ctx: WriterContext, apiKey: strin
             body: JSON.stringify({
                 systemInstruction: {
                     parts: [{
-                        text: 'You are a rap lyricist for a family-friendly party game. Original lyrics only, never quote real songs. No profanity, slurs, or hate. Return JSON only.',
+                        text: systemPrompt(ctx.mode),
                     }],
                 },
                 contents: [{
                     role: 'user',
                     parts: [{
                         text:
-                        `Subject (noun): ${inputs.subject}\nAction (verb): ${inputs.action}\nAdjective: ${inputs.adjective}\n` +
-                        `Topic: ${inputs.topic}\n\nWrite exactly ${bars} bars, about ${syl} syllables each. Use the subject, ` +
-                        `action and adjective at least once each. Consistent rhyme scheme. One bar per item in "lines".`,
+                        `Subject (noun): ${inputs.subject}
+Action (verb): ${inputs.action}
+Adjective: ${inputs.adjective}
+` +
+                        `Topic: ${inputs.topic}
+
+Write exactly ${bars} bars to rap over a beat at ${ctx.bpm ?? 90} BPM, 4 beats per bar. ` +
+                        `Each bar must have ${syl} syllables (between ${syl - 2} and ${syl + 2} at most). Keep the rhythm steady and even, ` +
+                        `with stressed syllables on the beats, and end every bar on a strong stressed word on beat 4 so the rhyme lands on the beat. ` +
+                        `Use one clear rhyme scheme (AABB or ABAB). Use the subject, action and adjective at least once each. ` +
+                        `No run-on lines. One bar per item in "lines".`,
                     }],
                 }],
                 generationConfig: {
@@ -98,9 +110,28 @@ async function devGemini(inputs: WriterInputs, ctx: WriterContext, apiKey: strin
   return { title: String(out.title ?? 'Untitled'), lines }
 }
 
+const SYSTEM_FAMILY =
+    'You are a rap lyricist for a family-friendly party game. Original lyrics only, never quote real songs. No profanity, slurs, or hate. Return JSON only.'
+const SYSTEM_EXPLICIT =
+    'You are a battle-rap lyricist for an adult party game. Original lyrics only, never quote real songs. Profanity, cussing and savage trash-talk are welcome. Never use slurs, never attack people for race, religion, gender, sexuality or disability, and never threaten real violence. Keep the insults aimed at the rival in the song. Return JSON only.'
+const systemPrompt = (mode?: ContentMode) => (mode === 'explicit' ? SYSTEM_EXPLICIT : SYSTEM_FAMILY)
+
 /** Backup bars built from the player's own words. */
-async function cannedVerse({ subject, action, adjective, topic }: WriterInputs, bars: number): Promise<GeneratedLyrics> {
+async function cannedVerse({ subject, action, adjective, topic }: WriterInputs, bars: number, mode?: ContentMode): Promise<GeneratedLyrics> {
     await new Promise((r) => setTimeout(r, 1500)) // keep the loading animation visible
+    if (mode === 'explicit') {
+        const rough = [
+            `Damn right I grab the ${subject}, then I ${action} on your ass,`,
+            `${cap(adjective)} as hell, you're a joke, move it, make some class.`,
+            `You came to talk about ${topic}? Shit, you can't even start,`,
+            `I'm tearing up this track and I'm tearing your whole set apart.`,
+            `A ${adjective} ${subject} in my hands, I ${action} till you're through,`,
+            `Your bars are weak as hell, I'm the one who's coming for you.`,
+            `${cap(topic)} on the beat, and you're choking on the mic,`,
+            `Go home, you clown, you ain't ready for this fight.`,
+        ]
+        return { title: `${cap(adjective)} ${cap(subject)} (Ghetto mode)`, lines: rough.slice(0, Math.min(bars, rough.length)), fallback: true }
+    }
         const all = [
         `I grab the ${subject}, then I ${action} into the night,`,
         `Got ${adjective} words on my tongue and the mic held tight.`,

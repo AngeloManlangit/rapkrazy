@@ -20,7 +20,7 @@ function tokenize(input: string): string[] { //helper function
   return input.split(/\r?\n/).filter((token) => token.length > 0);
 }
 
-export const assignRhymeScheme = (text: string, count: number, scheme = 'ABAB'): string => {
+export const assignRhymeScheme = (text: string, count: number, scheme = Math.random() < 0.5 ? 'AABB' : 'ABAB'): string => {
   const lines: string[] = tokenize(text);
   let buffer: string = scheme;
   
