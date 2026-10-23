@@ -155,22 +155,18 @@ const cleanCode = computed(() => code.value.trim().toUpperCase())
     0 0 0 3px var(--ink),
     18px 22px 0 3px var(--ink);
 }
+/* The title grows from its left edge and stays level, so it never pokes past the card */
 .card h2 {
+  transform-origin: left center;
   transition: transform 0.35s var(--spring);
 }
 .card:hover h2 {
-  transform: rotate(-5deg) scale(1.15);
-  animation: title-wiggle 0.5s ease-in-out 0.15s;
+  transform: scale(1.06);
+  animation: title-bounce 0.4s var(--spring) 0.1s;
 }
-@keyframes title-wiggle {
-  25% {
-    rotate: 3deg;
-  }
-  50% {
-    rotate: -3deg;
-  }
-  75% {
-    rotate: 1deg;
+@keyframes title-bounce {
+  40% {
+    translate: 0 -4px;
   }
 }
 .card h2 {
