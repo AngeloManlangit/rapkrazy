@@ -114,13 +114,13 @@ const cleanCode = computed(() => code.value.trim().toUpperCase())
 .join {
   --fill: var(--cel-cyan);
   --tilt: 1deg;
-  animation-delay: 0.08s;
+  --delay: 0.08s;
 }
 /* Cards drop in, lift and lean toward you on hover, and stay lifted while you type in them */
 .card {
   transform: rotate(var(--tilt));
   transition: transform 0.3s var(--spring);
-  animation: card-in 0.5s var(--spring) backwards;
+  animation: card-in 0.5s var(--spring) var(--delay, 0s) backwards;
 }
 @keyframes card-in {
   from {
@@ -135,7 +135,11 @@ const cleanCode = computed(() => code.value.trim().toUpperCase())
 }
 /* jelly wobble as the card jumps up */
 .card:hover {
-  animation: jelly 0.6s var(--spring);
+  /* Keep the (finished) entrance in the list: replacing it would replay it on unhover, and its
+     first frame is invisible, so the card would blink out. */
+  animation:
+    card-in 0.5s var(--spring) var(--delay, 0s) backwards,
+    jelly 0.6s var(--spring);
 }
 @keyframes jelly {
   30% {
@@ -209,8 +213,9 @@ const cleanCode = computed(() => code.value.trim().toUpperCase())
     ready 0.5s var(--spring),
     pulse 1.3s ease-in-out 0.5s infinite;
 }
+/* hold the pulse while hovered; swapping the animation out would replay the pop on unhover */
 .go:not(:disabled):hover {
-  animation: none;
+  animation-play-state: running, paused;
 }
 @keyframes ready {
   40% {
