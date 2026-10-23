@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { Beat, Room, RoomPlayer } from '@/shared/types'
+import type { Beat, Room, RoomMode, RoomPlayer } from '@/shared/types'
+import { LINE_COUNTS } from './duel/constants'
 import PlayerSeat from './PlayerSeat.vue'
 import { MAX_PLAYERS } from './roomApi'
 
@@ -16,19 +17,45 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   pickBeat: [id: string]
-  settings: [patch: { turnSeconds?: number; rounds?: number }]
+  setMode: [mode: RoomMode]
+  settings: [patch: { turnSeconds?: number; rounds?: number; lineCount?: number }]
   start: []
   leave: []
 }>()
 
 const TIMERS = [30, 45, 60, 90]
 const ROUNDS = [1, 2, 3]
+const MODES: { id: RoomMode; title: string; text: string }[] = [
+  // Write together is hidden for now. Uncomment it to show it next to Rhyme Duel.
+  // {
+  //   id: 'write',
+  //   title: 'Write together',
+  //   text: '2 to 5 players add a line each, then the robot raps it.',
+  // },
+  {
+    id: 'duel',
+    title: 'Rhyme Duel',
+    text: 'A 2-player rap battle. Each of you writes 4 ending words for the other, then raps 4 bars over the beat on the mic, rhyming those words on beat 4. The most rhymes on the beat wins, and a tie is possible.',
+  },
+]
+
+const duel = computed(() => props.room.mode === 'duel')
+const maxPlayers = computed(() => (duel.value ? 2 : MAX_PLAYERS))
 
 const picked = computed(() => props.beats.find((b) => b.id === props.room.beatId) ?? null)
-const canStart = computed(() => props.isHost && props.players.length >= 2 && !!picked.value)
+/** A duel needs a count-in bar plus one bar per line. */
+const beatTooShort = computed(
+  () => duel.value && !!picked.value && picked.value.totalBars < props.room.lineCount + 1,
+)
+const canStart = computed(() => {
+  if (!props.isHost || !picked.value || beatTooShort.value) return false
+  return duel.value ? props.players.length === 2 : props.players.length >= 2
+})
 const hint = computed(() => {
+  if (duel.value && props.players.length > 2) return 'Rhyme Duel is for exactly 2 players.'
   if (props.players.length < 2) return 'Need at least 2 players to start.'
   if (!picked.value) return 'Pick a beat first.'
+  if (beatTooShort.value) return 'That beat is too short for that many lines.'
   return ''
 })
 const lineCount = computed(() =>
@@ -75,10 +102,10 @@ const cleanTitle = (b: Beat) => b.title.replace(/^Placeholder:\s*/i, '')
     </section>
 
     <section class="seats-card panel ink halftone" aria-label="Players">
-      <span class="tag">Players {{ players.length }}/{{ MAX_PLAYERS }}</span>
+      <span class="tag">Players {{ players.length }}/{{ maxPlayers }}</span>
       <ul class="seats">
         <PlayerSeat
-          v-for="i in MAX_PLAYERS"
+          v-for="i in maxPlayers"
           :key="i"
           :seat="i - 1"
           :name="players[i - 1]?.name"
@@ -89,6 +116,22 @@ const cleanTitle = (b: Beat) => b.title.replace(/^Placeholder:\s*/i, '')
     </section>
 
     <section class="setup panel ink halftone" aria-label="Game setup">
+      <span class="tag">Mode</span>
+      <div class="modes" :class="{ single: MODES.length === 1 }">
+        <button
+          v-for="m in MODES"
+          :key="m.id"
+          class="mode ink"
+          type="button"
+          :aria-pressed="room.mode === m.id"
+          :disabled="!isHost || busy"
+          @click="emit('setMode', m.id)"
+        >
+          <b>{{ m.title }}</b>
+          <span>{{ m.text }}</span>
+        </button>
+      </div>
+
       <span class="tag">Beat</span>
       <ul class="beats">
         <li v-for="b in beats" :key="b.id">
@@ -111,7 +154,26 @@ const cleanTitle = (b: Beat) => b.title.replace(/^Placeholder:\s*/i, '')
         </li>
       </ul>
 
-      <div class="opts">
+      <div v-if="duel" class="opts">
+        <div class="opt">
+          <span class="tag">Words per player</span>
+          <div class="chips">
+            <button
+              v-for="n in LINE_COUNTS"
+              :key="n"
+              class="chip ink"
+              type="button"
+              :aria-pressed="room.lineCount === n"
+              :disabled="!isHost || busy"
+              @click="emit('settings', { lineCount: n })"
+            >
+              {{ n }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="!duel" class="opts">
         <div class="opt">
           <span class="tag">Seconds per line</span>
           <div class="chips">
@@ -146,7 +208,14 @@ const cleanTitle = (b: Beat) => b.title.replace(/^Placeholder:\s*/i, '')
         </div>
       </div>
 
-      <p class="summary">
+      <p v-if="duel" class="summary">
+        Each player writes {{ room.lineCount }} words and raps {{ room.lineCount }} bars<template
+          v-if="picked"
+        >
+          over {{ cleanTitle(picked) }}</template
+        >.
+      </p>
+      <p v-else class="summary">
         {{ lineCount }} lines in the song<template v-if="picked">
           over {{ cleanTitle(picked) }}</template
         >.
@@ -299,6 +368,48 @@ const cleanTitle = (b: Beat) => b.title.replace(/^Placeholder:\s*/i, '')
   display: grid;
   gap: 16px;
   padding: 22px;
+}
+.modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 8px 4px 4px;
+}
+.modes.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+.mode {
+  --fill: var(--cel-paper);
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  padding: 10px 14px;
+  border-radius: 12px 16px 10px 14px;
+  color: var(--text-ink);
+}
+.mode::before {
+  box-shadow: var(--line-sm);
+}
+.mode b {
+  font-family: var(--display);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+.mode span {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+.mode[aria-pressed='true'] {
+  --fill: var(--cel-yellow);
+}
+.mode:disabled {
+  cursor: default;
+}
+@media (max-width: 560px) {
+  .modes {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .beats {
   display: grid;

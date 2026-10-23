@@ -1,7 +1,7 @@
 ﻿// Supabase edge function: turns the player's words into rap bars with Gemini.
 // The Gemini key lives in a Supabase secret (GEMINI_API_KEY), never in the browser.
 
-const MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.5-flash'
+const MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.5-flash-lite'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -19,7 +19,53 @@ const SYSTEM_FAMILY =
 const SYSTEM_EXPLICIT =
   'You are a battle-rap lyricist for an adult party game. Original lyrics only, never quote real songs. Profanity, cussing and savage trash-talk are welcome. Never use slurs, never attack people for race, religion, gender, sexuality or disability, and never threaten real violence. Keep the insults aimed at the rival in the song. Return JSON only.'
 
-const clean = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max)
+const clean = (v: unknown, max: number) =>
+  String(v ?? '')
+    .trim()
+    .slice(0, max)
+
+/**
+ * Models to try in order. The free tier gives each model its own small daily quota (429) and some
+ * models are busy (503) or gone (404), so: retry a busy model, and move on to the next one for
+ * quota or unknown-model errors. GEMINI_MODEL, if set, is tried first.
+ */
+const MODELS = [MODEL, 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'].filter(
+  (m, i, all) => all.indexOf(m) === i,
+)
+const BUSY_STATUS = [500, 502, 503, 504]
+
+/** One generateContent call with retries. Returns the final response (ok or not). */
+async function callGemini(apiKey: string, body: unknown): Promise<Response> {
+  let res: Response | null = null
+  for (const model of MODELS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+          body: JSON.stringify(body),
+        },
+      )
+      if (res.ok) return res
+      // 404 (unknown model) and 429 (quota used up) will not get better on this model.
+      if (res.status === 404 || res.status === 429) break
+      if (!BUSY_STATUS.includes(res.status)) return res
+      await new Promise((resolve) => setTimeout(resolve, 600))
+    }
+  }
+  return res!
+}
+
+/** A short reason from a failed Gemini reply, for the error message. */
+async function reason(res: Response): Promise<string> {
+  try {
+    const data = await res.json()
+    return String(data?.error?.message ?? '').slice(0, 120)
+  } catch {
+    return ''
+  }
+}
 
 /** Rough English syllable count, same idea as the one in the app. */
 function countSyllables(text: string): number {
@@ -34,30 +80,29 @@ function countSyllables(text: string): number {
 
 /** One Gemini call. Returns null when the reply has no lyrics. */
 async function ask(apiKey: string, system: string, text: string, bars: number) {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: [{ role: 'user', parts: [{ text }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.9,
-          responseSchema: {
-            type: 'OBJECT',
-            properties: { title: { type: 'STRING' }, lines: { type: 'ARRAY', items: { type: 'STRING' } } },
-            required: ['title', 'lines'],
-          },
+  const res = await callGemini(apiKey, {
+    systemInstruction: { parts: [{ text: system }] },
+    contents: [{ role: 'user', parts: [{ text }] }],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      temperature: 0.9,
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          title: { type: 'STRING' },
+          lines: { type: 'ARRAY', items: { type: 'STRING' } },
         },
-      }),
+        required: ['title', 'lines'],
+      },
     },
-  )
-  if (!res.ok) throw new Error(`Gemini ${res.status}`)
+  })
+  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await reason(res)}`)
   const data = await res.json()
   const out = JSON.parse(data.candidates[0].content.parts[0].text)
-  const lines = (out.lines ?? []).map((l: unknown) => String(l).trim()).filter(Boolean).slice(0, bars)
+  const lines = (out.lines ?? [])
+    .map((l: unknown) => String(l).trim())
+    .filter(Boolean)
+    .slice(0, bars)
   if (!lines.length) return null
   return { title: String(out.title ?? 'Untitled'), lines }
 }
@@ -121,4 +166,3 @@ Topic: ${topic}
     return json({ error: (e as Error).message }, 502)
   }
 })
-

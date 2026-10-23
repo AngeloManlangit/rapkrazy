@@ -29,7 +29,7 @@ const cleanCode = computed(() => code.value.trim().toUpperCase())
     <div class="cards">
       <form class="card panel ink halftone host" @submit.prevent="emit('host', cleanName)">
         <h2 class="toon grad-pink shine">Host a lobby</h2>
-        <p>Start a room, share the code, and up to 4 friends can join you.</p>
+        <p>Start a Rhyme Duel, share the code, and one friend can join you.</p>
         <button class="go ink glint" type="submit" :disabled="busy || !cleanName">
           Create lobby
         </button>

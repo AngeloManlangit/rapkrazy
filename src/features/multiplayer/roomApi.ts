@@ -1,5 +1,5 @@
 import { supabase } from '@/shared/SupabaseClient'
-import type { Room, RoomLine, RoomPlayer } from '@/shared/types'
+import type { DuelResult, DuelWord, Room, RoomLine, RoomMode, RoomPlayer } from '@/shared/types'
 
 export const MAX_PLAYERS = 5
 
@@ -49,11 +49,13 @@ interface RoomRow {
   code: string
   host_id: string
   beat_id: string | null
+  mode: RoomMode
   status: Room['status']
   turn_index: number
   total_turns: number
   turn_seconds: number
   rounds: number
+  line_count: number
   turn_deadline: string | null
 }
 
@@ -61,11 +63,13 @@ const toRoom = (r: RoomRow): Room => ({
   code: r.code,
   hostId: r.host_id,
   beatId: r.beat_id,
+  mode: r.mode,
   status: r.status,
   turnIndex: r.turn_index,
   totalTurns: r.total_turns,
   turnSeconds: r.turn_seconds,
   rounds: r.rounds,
+  lineCount: r.line_count,
   turnDeadline: r.turn_deadline ? Date.parse(r.turn_deadline) : null,
 })
 
@@ -73,11 +77,13 @@ export interface RoomSnapshot {
   room: Room
   players: RoomPlayer[]
   lines: RoomLine[]
+  words: DuelWord[]
+  results: DuelResult[]
 }
 
 /** Everything the screens need, in one go. Null when the room is gone or we are not seated. */
 export async function fetchRoom(code: string): Promise<RoomSnapshot | null> {
-  const [room, players, lines] = await Promise.all([
+  const [room, players, lines, words, results] = await Promise.all([
     db().from('rooms').select('*').eq('code', code).maybeSingle(),
     db().from('room_players').select('player_id, name, seat').eq('room_code', code).order('seat'),
     db()
@@ -85,6 +91,8 @@ export async function fetchRoom(code: string): Promise<RoomSnapshot | null> {
       .select('turn_index, player_id, text')
       .eq('room_code', code)
       .order('turn_index'),
+    db().from('duel_words').select('player_id, position, word').eq('room_code', code),
+    db().from('duel_results').select('player_id, lines, score').eq('room_code', code),
   ])
   if (room.error) throw new Error(room.error.message)
   if (!room.data) return null
@@ -96,16 +104,28 @@ export async function fetchRoom(code: string): Promise<RoomSnapshot | null> {
       playerId: l.player_id,
       text: l.text,
     })),
+    words: (words.data ?? []).map((w) => ({
+      playerId: w.player_id,
+      position: w.position,
+      word: w.word,
+    })),
+    results: (results.data ?? []).map((r) => ({
+      playerId: r.player_id,
+      lines: r.lines,
+      score: Number(r.score),
+    })),
   }
 }
 
 export interface RoomPatch {
   beatId?: string | null
+  mode?: RoomMode
   status?: Room['status']
   turnIndex?: number
   totalTurns?: number
   turnSeconds?: number
   rounds?: number
+  lineCount?: number
   turnDeadline?: number | null
   hostId?: string
 }
@@ -118,11 +138,13 @@ export async function updateRoom(
 ): Promise<void> {
   const row: Record<string, unknown> = {}
   if (patch.beatId !== undefined) row.beat_id = patch.beatId
+  if (patch.mode !== undefined) row.mode = patch.mode
   if (patch.status !== undefined) row.status = patch.status
   if (patch.turnIndex !== undefined) row.turn_index = patch.turnIndex
   if (patch.totalTurns !== undefined) row.total_turns = patch.totalTurns
   if (patch.turnSeconds !== undefined) row.turn_seconds = patch.turnSeconds
   if (patch.rounds !== undefined) row.rounds = patch.rounds
+  if (patch.lineCount !== undefined) row.line_count = patch.lineCount
   if (patch.turnDeadline !== undefined) {
     row.turn_deadline =
       patch.turnDeadline === null ? null : new Date(patch.turnDeadline).toISOString()
@@ -191,6 +213,16 @@ export function watchRoom(code: string, opts: RoomWatchOptions): RoomChannel {
       { event: '*', schema: 'public', table: 'room_lines', filter: `room_code=eq.${code}` },
       onChange,
     )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'duel_words', filter: `room_code=eq.${code}` },
+      onChange,
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'duel_results', filter: `room_code=eq.${code}` },
+      onChange,
+    )
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') void channel.track({ since: Date.now() })
     })
@@ -198,4 +230,33 @@ export function watchRoom(code: string, opts: RoomWatchOptions): RoomChannel {
     close: () => void db().removeChannel(channel),
     send: (event, payload) => void channel.send({ type: 'broadcast', event, payload }),
   }
+}
+
+/** The 4 ending words one player wrote for their opponent. Repeats are ignored. */
+export async function submitWords(code: string, playerId: string, words: string[]): Promise<void> {
+  const rows = words.map((word, position) => ({
+    room_code: code,
+    player_id: playerId,
+    position,
+    word,
+  }))
+  const { error } = await db().from('duel_words').insert(rows)
+  if (error && error.code !== '23505') throw new Error(error.message)
+}
+
+export async function submitResult(code: string, result: DuelResult): Promise<void> {
+  const { error } = await db().from('duel_results').insert({
+    room_code: code,
+    player_id: result.playerId,
+    lines: result.lines,
+    score: result.score,
+  })
+  if (error && error.code !== '23505') throw new Error(error.message)
+}
+
+export async function clearDuel(code: string): Promise<void> {
+  const words = await db().from('duel_words').delete().eq('room_code', code)
+  if (words.error) throw new Error(words.error.message)
+  const results = await db().from('duel_results').delete().eq('room_code', code)
+  if (results.error) throw new Error(results.error.message)
 }

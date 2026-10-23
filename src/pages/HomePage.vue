@@ -40,7 +40,7 @@ const MENU = [
     label: 'Collab',
     frames: [collab1, collab2],
     height: 276,
-    text: 'Pass the pen with up to 4 friends, one line each.',
+    text: 'Rhyme duel a friend: swap words, then rap them on the mic.',
     fill: 'var(--cel-pink)',
   },
   {
