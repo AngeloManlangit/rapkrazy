@@ -75,12 +75,20 @@ const HYPE = [
 const hypeIndex = ref(0)
 let hypeTimer: ReturnType<typeof setInterval> | undefined
 
-/* Click the robot: the first beat plays and the robot raps a short welcome on it. */
+/* Click the robot: the first beat plays and the robot raps the welcome, then a Hacktoberfest verse. */
 const INTRO = [
   'Welcome to Rapkrazy, step up to the mic',
   'write a couple bars and I will rap them tonight',
   'pick a beat and hit write or collab with your crew',
   'the robot on the stage is waiting on you',
+  "it's Hacktoberfest and I'm committing all night",
+  'fixed one typo in a README, call me open source, right',
+  'four pull requests deep and I am hunting for the swag',
+  'merge conflict on main and now my whole team is mad',
+  'force pushed on a Friday, yeah I live dangerously',
+  'C I is red but it works on my machine',
+  'node modules folder heavier than the sun',
+  'L G T M, ship it, Devtones, we done',
 ]
 const INTRO_START = 1
 const INTRO_END = INTRO_START + INTRO.length
@@ -119,7 +127,7 @@ function toggleDemo() {
   clock.seek(barToSeconds(clock.beat, 0))
   void clock.play()
 }
-// The welcome is 4 bars after a 1-bar intro; stop after it.
+// One line per bar after a 1-bar intro (12 bars, fits the 16-bar beats); stop after the last.
 watch(
   () => position.value.bar,
   (bar) => {
