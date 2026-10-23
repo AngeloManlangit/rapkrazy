@@ -33,7 +33,7 @@
       { "text": "Cute little flow,", "syllables": 4 },
       { "text": "Say it to my face,", "syllables": 5 },
       { "text": "You soft as shit,", "syllables": 4, "explicit": true },
-      { "text": "Boy sweet as sugar", "syllables": 5, "explicit"}
+      { "text": "Boy sweet as sugar", "syllables": 5}
     ],
     "insult": [
       { "text": "fake ass bastard", "syllables": 4, "explicit": true },
