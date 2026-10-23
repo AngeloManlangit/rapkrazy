@@ -131,17 +131,47 @@ const cleanCode = computed(() => code.value.trim().toUpperCase())
 }
 .card:hover,
 .card:focus-within {
-  transform: rotate(calc(var(--tilt) * -2)) translateY(-8px) scale(1.02);
+  transform: rotate(calc(var(--tilt) * -3)) translateY(-16px) scale(1.05);
+}
+/* jelly wobble as the card jumps up */
+.card:hover {
+  animation: jelly 0.6s var(--spring);
+}
+@keyframes jelly {
+  30% {
+    scale: 1.06 0.93;
+  }
+  55% {
+    scale: 0.97 1.05;
+  }
+  80% {
+    scale: 1.01 0.99;
+  }
 }
 .card:hover::before,
 .card:focus-within::before {
-  box-shadow: var(--line-lift);
+  box-shadow:
+    var(--shade),
+    0 0 0 3px var(--ink),
+    18px 22px 0 3px var(--ink);
 }
 .card h2 {
-  transition: transform 0.3s var(--spring);
+  transition: transform 0.35s var(--spring);
 }
 .card:hover h2 {
-  transform: rotate(-3deg) scale(1.06);
+  transform: rotate(-5deg) scale(1.15);
+  animation: title-wiggle 0.5s ease-in-out 0.15s;
+}
+@keyframes title-wiggle {
+  25% {
+    rotate: 3deg;
+  }
+  50% {
+    rotate: -3deg;
+  }
+  75% {
+    rotate: 1deg;
+  }
 }
 .card h2 {
   margin: 0;
@@ -165,7 +195,7 @@ const cleanCode = computed(() => code.value.trim().toUpperCase())
   transition: transform 0.2s var(--spring);
 }
 .go:hover:not(:disabled) {
-  transform: rotate(-2deg) scale(1.06);
+  transform: rotate(-5deg) scale(1.15);
 }
 .go:hover:not(:disabled)::before {
   box-shadow: var(--line-lift);
@@ -177,13 +207,23 @@ const cleanCode = computed(() => code.value.trim().toUpperCase())
 .go:active:not(:disabled)::before {
   box-shadow: var(--line-press);
 }
-/* the button wiggles once the card is filled in and ready */
+/* once the card is filled in, the button pops and keeps pulsing until you click it */
 .go:not(:disabled) {
-  animation: ready 0.45s var(--spring);
+  animation:
+    ready 0.5s var(--spring),
+    pulse 1.3s ease-in-out 0.5s infinite;
+}
+.go:not(:disabled):hover {
+  animation: none;
 }
 @keyframes ready {
   40% {
-    transform: rotate(-4deg) scale(1.1);
+    transform: rotate(-6deg) scale(1.2);
+  }
+}
+@keyframes pulse {
+  50% {
+    scale: 1.08;
   }
 }
 .input {
