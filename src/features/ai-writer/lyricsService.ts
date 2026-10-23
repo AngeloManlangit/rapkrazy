@@ -61,7 +61,7 @@ async function viaEdgeFunction(inputs: WriterInputs, ctx: WriterContext): Promis
 */
 async function devGemini(inputs: WriterInputs, ctx: WriterContext, apiKey: string): Promise<GeneratedLyrics> {
     const bars = ctx.bars ?? 8
-    const syl = ctx.syllablesPerBar ?? 10
+    const syl = ctx.syllablesPerBar ?? 9
     const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${DEV_GEMINI_MODEL}:generateContent`,
         {
@@ -77,9 +77,17 @@ async function devGemini(inputs: WriterInputs, ctx: WriterContext, apiKey: strin
                     role: 'user',
                     parts: [{
                         text:
-                        `Subject (noun): ${inputs.subject}\nAction (verb): ${inputs.action}\nAdjective: ${inputs.adjective}\n` +
-                        `Topic: ${inputs.topic}\n\nWrite exactly ${bars} bars, about ${syl} syllables each. Use the subject, ` +
-                        `action and adjective at least once each. Consistent rhyme scheme. One bar per item in "lines".`,
+                        `Subject (noun): ${inputs.subject}
+Action (verb): ${inputs.action}
+Adjective: ${inputs.adjective}
+` +
+                        `Topic: ${inputs.topic}
+
+Write exactly ${bars} bars to rap over a beat at ${ctx.bpm ?? 90} BPM, 4 beats per bar. ` +
+                        `Each bar must have ${syl} syllables (between ${syl - 2} and ${syl + 2} at most). Keep the rhythm steady and even, ` +
+                        `with stressed syllables on the beats, and end every bar on a strong stressed word on beat 4 so the rhyme lands on the beat. ` +
+                        `Use one clear rhyme scheme (AABB or ABAB). Use the subject, action and adjective at least once each. ` +
+                        `No run-on lines. One bar per item in "lines".`,
                     }],
                 }],
                 generationConfig: {
@@ -122,7 +130,7 @@ async function cannedVerse({ subject, action, adjective, topic }: WriterInputs, 
             `${cap(topic)} on the beat, and you're choking on the mic,`,
             `Go home, you clown, you ain't ready for this fight.`,
         ]
-        return { title: `${cap(adjective)} ${cap(subject)} (Explicit)`, lines: rough.slice(0, Math.min(bars, rough.length)), fallback: true }
+        return { title: `${cap(adjective)} ${cap(subject)} (Ghetto mode)`, lines: rough.slice(0, Math.min(bars, rough.length)), fallback: true }
     }
         const all = [
         `I grab the ${subject}, then I ${action} into the night,`,

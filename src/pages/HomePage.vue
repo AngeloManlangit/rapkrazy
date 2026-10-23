@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import MadeBy from '@/shared/ui/MadeBy.vue'
 
 // Placeholder. Main menu UI and loading screen live in src/features/main-menu/.
-const isDev = import.meta.env.DEV
 
 // images
 import rapkrazyLogo from '@/assets/images/Rapkrazy logo.png'
@@ -22,10 +22,12 @@ const hoveredMenu = ref({
 </script>
 
 <template>
-  <main class="w-full min-h-screen grid grid-cols-2">
+  <main class="w-full min-h-screen grid grid-cols-2 relative">
     <section class="p-10 pt-2 items-center">
       <img :src="rapkrazyLogo" />
     </section>
+
+    <div class="absolute bottom-8 left-10"><MadeBy /></div>
     
     <section class="p-10 m-5 mr-0 rounded-3xl rounded-r-none bg-[#18c3e190] flex flex-col relative">
       
@@ -72,16 +74,6 @@ const hoveredMenu = ref({
             alt="Settings"
           />
         </RouterLink>
-      </nav>
-
-      <!-- Dev-only test pages. Not included in production builds. -->
-      <nav v-if="isDev" class="absolute bottom-10 right-10 text-right">
-        <p class="font-bold">Dev tools</p>
-        <RouterLink to="/dev/clock" class="hover:underline">Beat clock</RouterLink>
-        ·
-        <RouterLink to="/dev/robot" class="hover:underline">Robot voice</RouterLink>
-        ·
-        <RouterLink to="/dev/template-gen" class="hover:underline">Template gen</RouterLink>
       </nav>
     </section>
   </main>

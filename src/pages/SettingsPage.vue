@@ -8,6 +8,7 @@ import '@/shared/ui/ink.css'
 import { useContentMode, type ContentMode } from '@/shared/contentMode'
 import InkFilters from '@/shared/ui/InkFilters.vue'
 import TopBar from '@/shared/ui/TopBar.vue'
+import MadeBy from '@/shared/ui/MadeBy.vue'
 import settings1 from '@/assets/write/settings-1.webp'
 import settings2 from '@/assets/write/settings-2.webp'
 
@@ -16,13 +17,13 @@ const { mode, setMode } = useContentMode()
 const modes: { id: ContentMode; title: string; text: string }[] = [
   {
     id: 'family',
-    title: 'Family friendly',
+    title: 'Family-friendly',
     text: 'Clean lyrics from the AI ghostwriter. No cussing. This is the default.',
   },
   {
     id: 'explicit',
-    title: 'Explicit',
-    text: 'The AI ghostwriter can cuss and trash-talk. It still never writes slurs or hate.',
+    title: 'Ghetto mode',
+    text: 'The AI ghostwriter cusses and trash-talks. It still never writes slurs or hate.',
   },
 ]
 </script>
@@ -58,6 +59,7 @@ const modes: { id: ContentMode; title: string; text: string }[] = [
           </p>
         </section>
       </main>
+      <footer class="credit"><MadeBy /></footer>
     </div>
   </div>
 </template>
@@ -72,6 +74,11 @@ const modes: { id: ContentMode; title: string; text: string }[] = [
   display: flex;
   flex-direction: column;
   gap: 22px;
+}
+.credit {
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
 }
 .stage {
   max-width: 880px;

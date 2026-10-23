@@ -24,3 +24,12 @@ export function flowOf(text: string): { kind: FlowKind; label: string } {
   if (n <= 15) return { kind: 'busy', label }
   return { kind: 'crowd', label }
 }
+
+/**
+ * How many syllables fit one bar of a beat and still sound relaxed. Faster beats get fewer, because
+ * a bar is shorter. About 3.2 syllables per second, kept inside the "ok" range above.
+ */
+export function syllablesPerBar(bpm: number, beatsPerBar = 4): number {
+  const barSeconds = (60 / bpm) * beatsPerBar
+  return Math.min(12, Math.max(6, Math.round(barSeconds * 3.2)))
+}

@@ -10,10 +10,12 @@ import { barToSeconds, useBeatClock } from '@/shared/audio'
 import type { Beat, LyricLine } from '@/shared/types'
 import InkFilters from '@/shared/ui/InkFilters.vue'
 import TopBar from '@/shared/ui/TopBar.vue'
+import MadeBy from '@/shared/ui/MadeBy.vue'
 import PlayerCard from '@/features/music-player/PlayerCard.vue'
 import RobotStage from '@/features/robot/RobotStage.vue'
 import { EspeakVoice } from '@/features/robot/EspeakVoice'
 import { RobotRapper } from '@/features/robot/RobotRapper'
+import { syllablesPerBar } from '@/features/writing-board/flow'
 import LyricSheet from '@/features/writing-board/LyricSheet.vue'
 import WritingTools from '@/features/writing-board/WritingTools.vue'
 import { randomTemplate } from '@/features/writing-board/randomTemplate'
@@ -177,15 +179,12 @@ onBeforeUnmount(() => {
             @focus-line="gazeTarget = $event"
           />
         </section>
-        <WritingTools
-          class="area-tools"
-          @template="loadTemplate"
-          @ghostwriter="aiWriter?.open()"
-        />
+        <WritingTools class="area-tools" @template="loadTemplate" @ghostwriter="aiWriter?.open()" />
         <AiWriterPanel
           ref="aiWriter"
           :bars="lines.length"
           :bpm="beat?.bpm"
+          :syllables-per-bar="beat ? syllablesPerBar(beat.bpm, beat.beatsPerBar) : undefined"
           @add-to-board="onAiLyrics"
         />
         <SoundBoard
@@ -194,6 +193,7 @@ onBeforeUnmount(() => {
           @add="toast('Adding your own sounds is coming soon')"
         />
       </main>
+      <footer class="credit"><MadeBy /></footer>
     </div>
     <div class="toast" :class="{ show: toastShown }" role="status">{{ toastText }}</div>
   </div>
@@ -233,6 +233,11 @@ onBeforeUnmount(() => {
 }
 .area-sound {
   grid-area: sound;
+}
+.credit {
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
 }
 .toast {
   position: fixed;

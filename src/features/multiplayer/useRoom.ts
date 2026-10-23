@@ -148,7 +148,7 @@ export function useRoom() {
   async function enter(c: string) {
     code.value = c
     try {
-      localStorage.setItem(SAVED_CODE, c)
+      sessionStorage.setItem(SAVED_CODE, c)
     } catch {
       /* private mode: rejoin after refresh just will not work */
     }
@@ -175,7 +175,7 @@ export function useRoom() {
     lines.value = []
     handled = ''
     try {
-      localStorage.removeItem(SAVED_CODE)
+      sessionStorage.removeItem(SAVED_CODE)
     } catch {
       /* nothing to clear */
     }
@@ -209,7 +209,7 @@ export function useRoom() {
   async function resume() {
     let saved: string | null = null
     try {
-      saved = localStorage.getItem(SAVED_CODE)
+      saved = sessionStorage.getItem(SAVED_CODE)
     } catch {
       /* ignore */
     }
@@ -263,10 +263,15 @@ export function useRoom() {
       await updateRoom(code.value, { status: 'lobby', turnIndex: 0, turnDeadline: null })
     })
 
+  /*
+   * Leaving the page through the app (back to the menu, another page) leaves the lobby too, so the next
+   * visit to Collab starts at the host / join screen. A browser refresh does not run this, which is
+   * what lets resume() put you back in your lobby.
+   */
   onBeforeUnmount(() => {
-    unwatch?.()
-    clearInterval(poll)
-    clearInterval(tick)
+    const c = code.value
+    if (c && me.value) void leaveRoom(c, me.value)
+    reset()
   })
 
   return {
