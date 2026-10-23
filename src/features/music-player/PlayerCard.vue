@@ -279,16 +279,39 @@ function pick(b: Beat) {
   display: flex;
   gap: 7px;
 }
+/* Beat meter: one inked pill per beat in its own color, dim until its beat lands, then it jumps
+   up, fills in and glows. The downbeat jumps highest. */
 .bars span {
+  --c: var(--yellow);
   flex: 1;
   height: 11px;
-  border-radius: 3px 6px 3px 5px;
-  background: rgba(11, 6, 20, 0.25);
-  transition: transform 0.15s var(--spring);
+  border-radius: 4px 7px 4px 6px;
+  background: color-mix(in srgb, var(--c) 28%, transparent);
+  box-shadow: 0 0 0 2px var(--ink);
+  transition:
+    transform 0.15s var(--spring),
+    background 0.08s,
+    box-shadow 0.15s;
+}
+.bars span:nth-child(4n + 2) {
+  --c: var(--pink);
+}
+.bars span:nth-child(4n + 3) {
+  --c: var(--mint);
+}
+.bars span:nth-child(4n) {
+  --c: var(--paper);
 }
 .bars span.on {
-  background: var(--ink);
-  transform: scaleY(1.6);
+  background: var(--c);
+  transform: translateY(-3px) scaleY(1.7);
+  box-shadow:
+    0 0 0 2px var(--ink),
+    2px 3px 0 2px var(--ink),
+    0 0 14px 3px color-mix(in srgb, var(--c) 70%, transparent);
+}
+.bars span:first-child.on {
+  transform: translateY(-4px) scaleY(2);
 }
 
 /* Song picker (opens from CHOOSE SONG). Floats over the panel instead of pushing it taller,
