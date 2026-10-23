@@ -363,8 +363,7 @@ onBeforeUnmount(() => {
   text-decoration: none;
   rotate: calc((var(--i) - 1) * -1.5deg);
   transition: transform 0.3s var(--spring);
-  animation: mode-in 0.5s var(--spring) backwards;
-  animation-delay: calc(0.15s + var(--i) * 0.1s);
+  animation: mode-in 0.5s var(--spring) calc(0.15s + var(--i) * 0.1s) backwards;
 }
 @keyframes mode-in {
   from {
@@ -376,7 +375,11 @@ onBeforeUnmount(() => {
 .mode:hover,
 .mode:focus-visible {
   transform: translateX(-10px) translateY(-6px) scale(1.04);
-  animation: jelly 0.55s var(--spring);
+  /* Keep the (finished) entrance in the list: replacing it would replay it on unhover, and its
+     first frame is invisible, so the card would blink out. */
+  animation:
+    mode-in 0.5s var(--spring) calc(0.15s + var(--i) * 0.1s) backwards,
+    jelly 0.55s var(--spring);
 }
 @keyframes jelly {
   30% {
