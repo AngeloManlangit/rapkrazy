@@ -109,11 +109,39 @@ const cleanCode = computed(() => code.value.trim().toUpperCase())
 }
 .host {
   --fill: var(--cel-yellow);
-  transform: rotate(-1deg);
+  --tilt: -1deg;
 }
 .join {
   --fill: var(--cel-cyan);
-  transform: rotate(1deg);
+  --tilt: 1deg;
+  animation-delay: 0.08s;
+}
+/* Cards drop in, lift and lean toward you on hover, and stay lifted while you type in them */
+.card {
+  transform: rotate(var(--tilt));
+  transition: transform 0.3s var(--spring);
+  animation: card-in 0.5s var(--spring) backwards;
+}
+@keyframes card-in {
+  from {
+    translate: 0 24px;
+    scale: 0.94;
+    opacity: 0;
+  }
+}
+.card:hover,
+.card:focus-within {
+  transform: rotate(calc(var(--tilt) * -2)) translateY(-8px) scale(1.02);
+}
+.card:hover::before,
+.card:focus-within::before {
+  box-shadow: var(--line-lift);
+}
+.card h2 {
+  transition: transform 0.3s var(--spring);
+}
+.card:hover h2 {
+  transform: rotate(-3deg) scale(1.06);
 }
 .card h2 {
   margin: 0;
@@ -139,8 +167,34 @@ const cleanCode = computed(() => code.value.trim().toUpperCase())
 .go:hover:not(:disabled) {
   transform: rotate(-2deg) scale(1.06);
 }
+.go:hover:not(:disabled)::before {
+  box-shadow: var(--line-lift);
+}
 .go:active:not(:disabled) {
-  transform: translate(3px, 4px);
+  transform: translate(3px, 4px) scale(1.05, 0.9);
+  transition-duration: 0.06s;
+}
+.go:active:not(:disabled)::before {
+  box-shadow: var(--line-press);
+}
+/* the button wiggles once the card is filled in and ready */
+.go:not(:disabled) {
+  animation: ready 0.45s var(--spring);
+}
+@keyframes ready {
+  40% {
+    transform: rotate(-4deg) scale(1.1);
+  }
+}
+.input {
+  transition:
+    transform 0.2s var(--spring),
+    box-shadow 0.15s;
+}
+.input:focus {
+  outline: none;
+  transform: translateY(-2px) rotate(-0.5deg);
+  box-shadow: 5px 7px 0 var(--ink);
 }
 .go:disabled {
   opacity: 0.45;
