@@ -28,7 +28,7 @@ const cleanCode = computed(() => code.value.trim().toUpperCase())
 
     <div class="cards">
       <form class="card panel ink halftone host" @submit.prevent="emit('host', cleanName)">
-        <h2 class="toon">Host a lobby</h2>
+        <h2 class="toon grad-pink shine">Host a lobby</h2>
         <p>Start a room, share the code, and up to 4 friends can join you.</p>
         <button class="go ink glint" type="submit" :disabled="busy || !cleanName">
           Create lobby
@@ -39,7 +39,7 @@ const cleanCode = computed(() => code.value.trim().toUpperCase())
         class="card panel ink halftone join"
         @submit.prevent="emit('join', cleanCode, cleanName)"
       >
-        <h2 class="toon">Join a lobby</h2>
+        <h2 class="toon grad shine">Join a lobby</h2>
         <label class="field">
           <span class="tag">Lobby code</span>
           <input
@@ -164,9 +164,45 @@ const cleanCode = computed(() => code.value.trim().toUpperCase())
   transform-origin: left center;
   transition: transform 0.35s var(--spring);
 }
+/* Cel-gradient lettering (pink on the yellow card, gold on the cyan one) with a shine that sweeps
+   across every few seconds, faster on hover */
+.host h2 {
+  --title-grad: linear-gradient(180deg, #ffa3d6 0 40%, var(--pink) 40% 68%, var(--violet) 68%);
+}
+.join h2 {
+  --title-grad: linear-gradient(180deg, #ffffff 0 42%, var(--yellow) 42% 70%, #ffb300 70%);
+}
+.card h2.shine {
+  background-image:
+    linear-gradient(105deg, transparent 42%, rgba(255, 255, 255, 0.9) 50%, transparent 58%),
+    var(--title-grad);
+  background-size:
+    300% 100%,
+    100% 100%;
+  background-position:
+    100% 0,
+    0 0;
+  background-repeat: no-repeat;
+  animation: title-shine 4.5s ease-in-out infinite;
+}
+@keyframes title-shine {
+  0%,
+  70% {
+    background-position:
+      100% 0,
+      0 0;
+  }
+  100% {
+    background-position:
+      0 0,
+      0 0;
+  }
+}
 .card:hover h2 {
   transform: scale(1.06);
-  animation: title-bounce 0.4s var(--spring) 0.1s;
+  animation:
+    title-shine 1.4s ease-in-out infinite,
+    title-bounce 0.4s var(--spring) 0.1s;
 }
 @keyframes title-bounce {
   40% {
