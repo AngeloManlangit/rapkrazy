@@ -14,6 +14,13 @@ const props = defineProps<{
   gazeTarget?: HTMLElement | null
   /** Shown in the bubble when not playing. */
   idleText: string
+  /**
+   * Keep grooving with no beat playing (main menu): bob, thump, notes and a moving waveform at
+   * 90 BPM, singing `word` when it's set. Real playback takes over whenever the clock plays.
+   */
+  groove?: boolean
+  /** Line under the robot when not playing. */
+  hint?: string
 }>()
 const emit = defineEmits<{ toggle: [] }>()
 
@@ -35,7 +42,11 @@ const notes = ref<{ id: number; alt: boolean }[]>([])
 const WAVE_IDLE = '128,204 136,192 144,212 152,188 160,210 168,196 180,203'
 const wave = ref(WAVE_IDLE)
 
-const bubble = computed(() => (isPlaying.value ? props.word || '…' : props.idleText))
+const grooving = computed(() => !!props.groove && !isPlaying.value && !reduceMotion)
+const bubble = computed(() => {
+  if (isPlaying.value) return props.word || 'â€¦'
+  return grooving.value && props.word ? props.word : props.idleText
+})
 
 /* Mood: happy on hover, wide eyes on a soundboard hit. Parents call react(). */
 let moodTimer: ReturnType<typeof setTimeout> | undefined
@@ -49,12 +60,15 @@ defineExpose({ react })
 /* Beat: bob, speaker thump, a note from the speaker every other beat */
 let noteId = 0
 let bobTimer: ReturnType<typeof setTimeout> | undefined
-const offBeat = clock.onBeat((pos) => {
-  if (reduceMotion || !clock.isPlaying) return
+function beatHit(beatInBar: number) {
   bob.value = true
   clearTimeout(bobTimer)
   bobTimer = setTimeout(() => (bob.value = false), 120)
-  if (pos.beat % 2 === 0) notes.value.push({ id: noteId++, alt: pos.beat === 2 })
+  if (beatInBar % 2 === 0) notes.value.push({ id: noteId++, alt: beatInBar === 2 })
+}
+const offBeat = clock.onBeat((pos) => {
+  if (reduceMotion || !clock.isPlaying) return
+  beatHit(pos.beat)
 })
 
 /* Each sung word: pop the bubble and tilt the head the other way */
@@ -89,6 +103,11 @@ function tick() {
   const idx = Math.floor(eighths)
   if (idx === lastEighth) return
   lastEighth = idx
+  newWave()
+}
+
+/** A fresh random squiggle on the screen; taller while a word is sung. */
+function newWave() {
   const energy = props.word ? 1 : 0.45
   const pts: string[] = []
   for (let i = 0; i < 8; i++) {
@@ -97,6 +116,30 @@ function tick() {
   }
   wave.value = pts.join(' ')
 }
+
+/* Groove mode: the same moves on a silent 90 BPM pulse, one step per eighth note. */
+const GROOVE_EIGHTH_MS = 60000 / 90 / 2
+let grooveTimer: ReturnType<typeof setInterval> | undefined
+let grooveStep = 0
+function grooveTick() {
+  const step = grooveStep++
+  if (step % 2 === 0) beatHit((step / 2) % 4)
+  newWave()
+  sing.value = !!props.word
+  setTimeout(() => (sing.value = false), GROOVE_EIGHTH_MS * 0.55)
+}
+watch(
+  grooving,
+  (on) => {
+    clearInterval(grooveTimer)
+    if (on) grooveTimer = setInterval(grooveTick, GROOVE_EIGHTH_MS)
+    else if (!isPlaying.value) {
+      sing.value = false
+      wave.value = WAVE_IDLE
+    }
+  },
+  { immediate: true },
+)
 
 /* Eyes: random blinks, follow the cursor or the focused lyric line */
 let blinkTimer: ReturnType<typeof setTimeout> | undefined
@@ -151,13 +194,14 @@ onBeforeUnmount(() => {
   cancelAnimationFrame(frame)
   cancelAnimationFrame(lookFrame)
   clearTimeout(blinkTimer)
+  clearInterval(grooveTimer)
   clearTimeout(bobTimer)
   clearTimeout(moodTimer)
 })
 </script>
 
 <template>
-  <section class="robot-stage" :class="{ live: isPlaying }" aria-label="Robot rapper">
+  <section class="robot-stage" :class="{ live: isPlaying || grooving }" aria-label="Robot rapper">
     <div :key="bubblePop" class="bubble ink" :class="{ pop: bubblePop > 0 }" aria-live="polite">
       {{ bubble }}
     </div>
@@ -166,7 +210,7 @@ onBeforeUnmount(() => {
       class="robot"
       :class="[
         {
-          live: isPlaying,
+          live: isPlaying || grooving,
           bob,
           sing,
           blink: blinking,
@@ -304,7 +348,7 @@ onBeforeUnmount(() => {
         </g>
       </svg>
     </button>
-    <p class="hint toon">{{ isPlaying ? 'Tap to stop' : 'Tap to hear your verse' }}</p>
+    <p class="hint toon">{{ isPlaying ? 'Tap to stop' : (hint ?? 'Tap to hear your verse') }}</p>
   </section>
 </template>
 
