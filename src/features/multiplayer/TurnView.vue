@@ -1,11 +1,20 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { barToSeconds, useBeatClock } from '@/shared/audio'
 import type { RoomPlayer } from '@/shared/types'
-import CountdownBar from './CountdownBar.vue'
+import NotebookSheet from '@/shared/ui/NotebookSheet.vue'
+import BarRow from '@/shared/ui/BarRow.vue'
+import RobotStage from '@/features/robot/RobotStage.vue'
+import { EspeakVoice } from '@/features/robot/EspeakVoice'
+import { RobotRapper } from '@/features/robot/RobotRapper'
+import SoundBoard from '@/features/soundboard/SoundBoard.vue'
+import { playSfx } from '@/features/soundboard/sfx'
+import { flowOf } from '@/features/writing-board/flow'
 import PlayerSeat from './PlayerSeat.vue'
 
-// The writing phase: you only see the line right before yours. Everyone else waits and watches.
+// The writing phase, laid out like /write: robot | notebook | soundboard. You only see the line
+// right before yours; click the robot to hear it rapped over its bar. Your line gets the live
+// syllable sticker, and "Hear bar N" loops the bar it will land on.
 
 const props = defineProps<{
   players: RoomPlayer[]
@@ -13,6 +22,7 @@ const props = defineProps<{
   hostId: string
   writerId: string
   writerName: string
+  nextId: string
   isMyTurn: boolean
   submitted: boolean
   previousText: string | null
@@ -26,226 +36,451 @@ const props = defineProps<{
 const emit = defineEmits<{ submit: [text: string] }>()
 
 const text = ref('')
+const input = useTemplateRef<HTMLTextAreaElement>('input')
+const robot = useTemplateRef<InstanceType<typeof RobotStage>>('robot')
 
-/* "Hear the beat": plays the bar this line will sit on, on a loop, so the writer can feel the flow. */
 const { clock, isPlaying, position } = useBeatClock()
-const hearing = ref(false)
+const rapper = new RobotRapper(new EspeakVoice())
+rapper.options = { voice: 'en-us', speed: 250, pitch: 40, slotsPerBeat: 2, squeeze: true }
+
+/** Bar this turn's line lands on, and the one before it (the previous line). */
 const lineBar = computed(() => {
   const total = clock.beat?.totalBars ?? 1
   return Math.min(props.turnIndex, Math.max(total - 1, 0))
 })
+const prevBar = computed(() => Math.max(lineBar.value - 1, 0))
 
-function stopBeat() {
-  hearing.value = false
+/* The robot raps the previous line on its bar; it's synthesized as soon as the line arrives. */
+watch(
+  () => [props.previousText, clock.beat?.id] as const,
+  ([prev]) => {
+    const lines = prev ? [{ id: 'prev', text: prev, bar: prevBar.value, bars: 1 }] : []
+    void rapper.setLines(lines).catch((e) => console.error('Robot voice failed', e))
+  },
+  { immediate: true },
+)
+
+/* What's sounding: the previous line (robot, plays once) or your bar (beat only, loops). */
+const playing = ref<'prev' | 'mine' | null>(null)
+function stop() {
+  playing.value = null
   clock.pause()
 }
-function toggleBeat() {
+function play(which: 'prev' | 'mine') {
   const beat = clock.beat
-  if (hearing.value) return stopBeat()
   if (!beat) return
-  hearing.value = true
-  clock.seek(barToSeconds(beat, lineBar.value))
+  if (playing.value === which && isPlaying.value) return stop()
+  playing.value = which
+  clock.seek(barToSeconds(beat, which === 'prev' ? prevBar.value : lineBar.value))
   void clock.play()
 }
-/* Past the end of this line's bar? Jump back to its start. */
 watch(
   () => position.value.bar,
   (bar) => {
     const beat = clock.beat
-    if (hearing.value && beat && bar > lineBar.value) clock.seek(barToSeconds(beat, lineBar.value))
+    if (!beat || !playing.value) return
+    if (playing.value === 'prev' && bar > prevBar.value) stop()
+    // Past the end of your bar? Jump back to its start.
+    if (playing.value === 'mine' && bar > lineBar.value) {
+      clock.seek(barToSeconds(beat, lineBar.value))
+    }
   },
 )
+watch(isPlaying, (on) => {
+  if (!on) playing.value = null
+})
+
+const rowBeat = (which: 'prev' | 'mine') => {
+  if (playing.value !== which || !isPlaying.value) return -1
+  const bar = which === 'prev' ? prevBar.value : lineBar.value
+  return position.value.bar === bar ? position.value.beat : -1
+}
+
+/* Robot bubble: the word it's rapping right now. */
+const word = ref('')
+let frame = 0
+const poll = () => {
+  word.value =
+    playing.value === 'prev' && clock.isPlaying
+      ? (rapper.chunkAt(clock.currentTime())?.text ?? '')
+      : ''
+  frame = requestAnimationFrame(poll)
+}
+const idleText = computed(() => {
+  if (!props.previousText) return props.isMyTurn ? 'You open the song!' : 'Fresh song!'
+  return 'Tap me to hear it'
+})
+function robotClick() {
+  if (props.previousText) play('prev')
+  else play('mine')
+}
+
+/* A new turn: clear the draft and stop whatever plays. Your turn: chime, robot cheers, focus. */
 watch(
   () => props.turnIndex,
   () => {
     text.value = ''
-    if (hearing.value) stopBeat()
+    if (playing.value) stop()
   },
 )
+const writing = computed(() => props.isMyTurn && !props.submitted)
 watch(
-  () => props.isMyTurn && !props.submitted,
-  (writing) => {
-    if (!writing && hearing.value) stopBeat()
+  writing,
+  (now, before) => {
+    if (!now) {
+      if (playing.value === 'mine') stop()
+      return
+    }
+    if (before) return
+    playSfx('ding')
+    robot.value?.react('happy', 1500)
+    setTimeout(() => input.value?.focus(), 50)
   },
+  { immediate: true },
 )
-onBeforeUnmount(() => {
-  if (hearing.value) clock.pause()
-})
 
-const canSend = computed(
-  () => props.isMyTurn && !props.submitted && !props.busy && !!text.value.trim(),
-)
+const myFlow = computed(() => flowOf(text.value))
+const canSend = computed(() => writing.value && !props.busy && !!text.value.trim())
+const timePct = computed(() => Math.min(100, (props.secondsLeft / props.turnSeconds) * 100))
+const hurry = computed(() => props.secondsLeft <= 10)
 
 function send() {
-  if (canSend.value) emit('submit', text.value)
+  if (!canSend.value) return
+  if (playing.value) stop()
+  emit('submit', text.value)
 }
+
+onMounted(() => {
+  rapper.start()
+  frame = requestAnimationFrame(poll)
+})
+onBeforeUnmount(() => {
+  rapper.stop()
+  cancelAnimationFrame(frame)
+  if (playing.value) clock.pause()
+})
 </script>
 
 <template>
   <div class="turn">
-    <ul class="seats" aria-label="Players">
-      <PlayerSeat
-        v-for="(p, i) in players"
-        :key="p.id"
-        :seat="i"
-        :name="p.name"
-        :host="p.id === hostId"
-        :you="p.id === me"
-        :active="p.id === writerId"
-      />
-    </ul>
-
-    <section class="pad panel ink halftone" aria-live="polite">
-      <CountdownBar
-        :seconds="secondsLeft"
-        :total="turnSeconds"
-        :label="`Line ${turnIndex + 1} of ${totalTurns}`"
-      />
-
-      <div class="prev">
-        <span class="label">{{
-          previousText ? `${previousAuthor} wrote` : 'You open the song'
-        }}</span>
-        <p v-if="previousText" class="prev-text">{{ previousText }}</p>
-        <p v-else class="prev-text dim">Nobody has written yet. Start it off!</p>
+    <header class="status panel ink halftone">
+      <span class="tag">Line {{ turnIndex + 1 }} of {{ totalTurns }}</span>
+      <ul class="seats" aria-label="Players">
+        <PlayerSeat
+          v-for="(p, i) in players"
+          :key="p.id"
+          :seat="i"
+          :name="p.name"
+          :host="p.id === hostId"
+          :you="p.id === me"
+          :active="p.id === writerId"
+          :next="p.id === nextId && p.id !== writerId"
+        />
+      </ul>
+      <span class="clock toon" :class="{ hurry }">{{ secondsLeft }}s</span>
+      <div class="timer ink" aria-hidden="true">
+        <i :class="{ hurry }" :style="{ width: `${timePct}%` }"></i>
       </div>
+    </header>
 
-      <form v-if="isMyTurn && !submitted" class="write" @submit.prevent="send">
-        <label>
-          <span class="label">Your line</span>
-          <textarea
-            v-model="text"
-            class="input"
-            rows="3"
-            maxlength="140"
-            placeholder="Continue the song..."
-            @keydown.enter.exact.prevent="send"
-          ></textarea>
-        </label>
-        <div class="buttons">
-          <button class="send ink glint" type="submit" :disabled="!canSend">Send line</button>
-          <button
-            class="hear ink glint"
-            type="button"
-            :aria-pressed="hearing && isPlaying"
-            :disabled="!clock.beat"
-            @click="toggleBeat"
+    <main class="stage">
+      <RobotStage
+        ref="robot"
+        class="area-robot"
+        :word="word"
+        :idle-text="idleText"
+        @toggle="robotClick"
+      />
+
+      <section class="area-board" aria-live="polite">
+        <NotebookSheet :title="writing ? 'Your line!' : `${writerName} is up`">
+          <template #head>
+            <span class="note">You only see the line before yours</span>
+          </template>
+
+          <BarRow
+            v-if="previousText"
+            :num="turnIndex"
+            :active="playing === 'prev'"
+            :hit="rowBeat('prev')"
           >
-            {{ hearing && isPlaying ? 'Stop beat' : `Hear bar ${lineBar + 1}` }}
-          </button>
-        </div>
-      </form>
-      <p v-else-if="isMyTurn" class="wait">Locked in. Waiting for the next turn...</p>
-      <p v-else class="wait">{{ writerName }} is writing...</p>
-    </section>
+            <p class="line-text">{{ previousText }}</p>
+            <p class="by">by {{ previousAuthor }}</p>
+            <template #sticker>
+              <span class="ink-sticker" :class="flowOf(previousText).kind">{{
+                flowOf(previousText).label
+              }}</span>
+            </template>
+          </BarRow>
+
+          <BarRow
+            :num="turnIndex + 1"
+            :active="playing === 'mine' || writing"
+            :hit="rowBeat('mine')"
+            :class="{ mine: writing }"
+          >
+            <textarea
+              v-if="writing"
+              ref="input"
+              v-model="text"
+              class="line-input"
+              rows="1"
+              maxlength="140"
+              :placeholder="previousText ? 'Keep it going...' : 'Open the song...'"
+              aria-label="Your line"
+              @keydown.enter.exact.prevent="send"
+            ></textarea>
+            <p v-else-if="isMyTurn" class="line-text dim">Locked in. Waiting for the next turn</p>
+            <p v-else class="line-text dim typing">{{ writerName }} is writing</p>
+            <template #sticker>
+              <span v-if="writing" class="ink-sticker" :class="myFlow.kind">{{
+                myFlow.label
+              }}</span>
+              <span v-else class="ink-sticker thin">...</span>
+            </template>
+          </BarRow>
+
+          <template #footer>
+            <div v-if="writing" class="buttons">
+              <button class="send ink glint" type="button" :disabled="!canSend" @click="send">
+                Send line
+              </button>
+              <button
+                class="hear ink glint"
+                type="button"
+                :aria-pressed="playing === 'mine'"
+                :disabled="!clock.beat"
+                @click="play('mine')"
+              >
+                {{ playing === 'mine' ? 'Stop beat' : `Hear bar ${lineBar + 1}` }}
+              </button>
+              <span class="tip">Aim for the green sticker: it fits the bar.</span>
+            </div>
+            <p v-else class="tip">
+              {{
+                previousText
+                  ? 'Tap the robot to hear the last line rapped.'
+                  : 'The song starts with this line.'
+              }}
+            </p>
+          </template>
+        </NotebookSheet>
+      </section>
+
+      <SoundBoard class="area-sound" @hit="!isPlaying && robot?.react('wow', 650)" />
+    </main>
   </div>
 </template>
 
 <style scoped>
 .turn {
   display: grid;
-  gap: 26px;
-  max-width: 760px;
-  margin: 0 auto;
-  width: 100%;
+  gap: 22px;
+  /* only two rows: let the sheet size to its content */
+  --sheet-h: auto;
 }
-.seats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  margin: 0;
-  padding: 0 0 6px;
-  list-style: none;
-}
-.pad {
+.status {
   --fill: var(--cel-paper);
   display: grid;
-  gap: 18px;
-  padding: 24px;
-}
-.prev {
-  display: grid;
-  gap: 6px;
-}
-.label {
-  font-family: var(--display);
-  font-size: 14px;
-  letter-spacing: 0.08em;
-  color: var(--violet);
-}
-.prev-text {
-  margin: 0;
-  font: 400 26px/1.4 var(--marker);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 18px;
+  padding: 14px 20px;
   color: var(--text-ink);
+}
+.seats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.seats > * {
+  flex: 1 1 130px;
+}
+.clock {
+  font-size: 30px;
+  color: var(--paper);
+}
+.clock.hurry {
+  color: var(--pink);
+  animation: throb 0.5s ease-in-out infinite alternate;
+}
+@keyframes throb {
+  to {
+    scale: 1.12;
+  }
+}
+.timer {
+  --fill: var(--cel-paper);
+  grid-column: 1 / -1;
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.timer i {
+  display: block;
+  height: 100%;
+  background: var(--cyan);
+  transition: width 0.5s linear;
+}
+.timer i.hurry {
+  background: var(--pink);
+}
+
+/* Same three columns as /write: robot | notebook | soundboard */
+.stage {
+  display: grid;
+  gap: 26px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr) minmax(0, 1fr);
+  grid-template-areas: 'robot board sound';
+  align-items: start;
+}
+.area-robot {
+  grid-area: robot;
+}
+.area-board {
+  grid-area: board;
+}
+.area-sound {
+  grid-area: sound;
+}
+
+.note {
+  font-weight: 500;
+  font-size: 13px;
+}
+.line-text {
+  margin: 0;
+  padding: 0 6px;
+  font: 400 clamp(18px, 1.5vw, 22px) / 1.35 var(--marker);
   overflow-wrap: anywhere;
 }
-.dim {
+.line-text.dim {
   opacity: 0.55;
 }
-.write {
-  display: grid;
-  gap: 14px;
+.typing::after {
+  content: '';
+  animation: dots 1.2s steps(4, end) infinite;
 }
-.write label {
-  display: grid;
-  gap: 6px;
+@keyframes dots {
+  0% {
+    content: '';
+  }
+  25% {
+    content: '.';
+  }
+  50% {
+    content: '..';
+  }
+  75% {
+    content: '...';
+  }
 }
-.input {
+.by {
+  margin: 2px 0 0;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.6;
+}
+/* your row pops in when your turn starts */
+.mine {
+  animation: your-turn 0.5s var(--spring);
+}
+@keyframes your-turn {
+  40% {
+    scale: 1.04 0.94;
+  }
+}
+/* same wavy pen stroke as the lyric sheet */
+.line-input {
+  display: block;
   width: 100%;
-  box-sizing: border-box;
   resize: none;
-  font: 400 22px/1.5 var(--marker);
+  field-sizing: content;
+  min-height: 1.4em;
+  font: 400 clamp(18px, 1.5vw, 22px) / 1.35 var(--marker);
   color: var(--text-ink);
-  background: #fff;
-  border: 3px solid var(--ink);
-  border-radius: 12px 16px 10px 14px;
-  padding: 10px 14px;
-  box-shadow: 3px 4px 0 var(--ink);
+  border: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 7'%3E%3Cpath d='M0 2.6C40 .6 80 1.8 110 2.8S180 4.2 220 2.6L220 5.4C180 7 140 5 110 5.8S40 6.8 0 5.4Z' fill='%235a1fd1'/%3E%3C/svg%3E")
+    left bottom / 220px 7px repeat-x;
+  padding: 0 6px 7px;
+}
+.line-input:focus {
+  outline: none;
+}
+.line-input::placeholder {
+  color: rgba(11, 6, 20, 0.35);
 }
 .buttons {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 14px;
+  margin-top: 8px;
 }
+.send,
 .hear {
-  --fill: var(--cel-cyan);
   font-family: var(--display);
   font-size: 20px;
   letter-spacing: 0.06em;
-  color: var(--text-ink);
   padding: 12px 24px 9px;
   border-radius: 16px 22px 14px 20px;
   transition: transform 0.2s var(--spring);
 }
-.hear:hover:not(:disabled) {
-  transform: rotate(2deg) scale(1.06);
+.send {
+  --fill: var(--cel-pink);
+  color: var(--paper);
+  text-shadow: 2px 2px 0 var(--ink);
 }
+.hear {
+  --fill: var(--cel-cyan);
+  color: var(--text-ink);
+}
+.send:hover:not(:disabled),
+.hear:hover:not(:disabled) {
+  transform: rotate(-3deg) scale(1.08);
+}
+.send:hover:not(:disabled)::before,
+.hear:hover:not(:disabled)::before {
+  box-shadow: var(--line-lift);
+}
+.send:active:not(:disabled),
+.hear:active:not(:disabled) {
+  transform: translate(3px, 4px) scale(1.05, 0.9);
+  transition-duration: 0.06s;
+}
+.send:disabled,
 .hear:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
-.send {
-  --fill: var(--cel-pink);
-  justify-self: start;
-  font-family: var(--display);
-  font-size: 20px;
-  letter-spacing: 0.06em;
-  color: var(--paper);
-  text-shadow: 2px 2px 0 var(--ink);
-  padding: 12px 28px 9px;
-  border-radius: 16px 22px 14px 20px;
-  transition: transform 0.2s var(--spring);
+.tip {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 500;
 }
-.send:hover:not(:disabled) {
-  transform: rotate(-2deg) scale(1.06);
+@media (max-width: 1000px) {
+  .stage {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'robot sound'
+      'board board';
+  }
 }
-.send:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-.wait {
-  margin: 0;
-  font: 400 22px/1.3 var(--marker);
-  color: var(--text-ink);
+@media (max-width: 640px) {
+  .status {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .seats {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .stage {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'board' 'robot' 'sound';
+  }
 }
 </style>

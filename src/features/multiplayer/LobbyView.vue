@@ -28,7 +28,7 @@ const cleanCode = computed(() => code.value.trim().toUpperCase())
 
     <div class="cards">
       <form class="card panel ink halftone host" @submit.prevent="emit('host', cleanName)">
-        <h2 class="toon">Host a lobby</h2>
+        <h2 class="toon grad-pink shine">Host a lobby</h2>
         <p>Start a Rhyme Duel, share the code, and one friend can join you.</p>
         <button class="go ink glint" type="submit" :disabled="busy || !cleanName">
           Create lobby
@@ -39,7 +39,7 @@ const cleanCode = computed(() => code.value.trim().toUpperCase())
         class="card panel ink halftone join"
         @submit.prevent="emit('join', cleanCode, cleanName)"
       >
-        <h2 class="toon">Join a lobby</h2>
+        <h2 class="toon grad shine">Join a lobby</h2>
         <label class="field">
           <span class="tag">Lobby code</span>
           <input
@@ -109,11 +109,105 @@ const cleanCode = computed(() => code.value.trim().toUpperCase())
 }
 .host {
   --fill: var(--cel-yellow);
-  transform: rotate(-1deg);
+  --tilt: -1deg;
 }
 .join {
   --fill: var(--cel-cyan);
-  transform: rotate(1deg);
+  --tilt: 1deg;
+  --delay: 0.08s;
+}
+/* Cards drop in, lift and lean toward you on hover, and stay lifted while you type in them */
+.card {
+  transform: rotate(var(--tilt));
+  transition: transform 0.3s var(--spring);
+  animation: card-in 0.5s var(--spring) var(--delay, 0s) backwards;
+}
+@keyframes card-in {
+  from {
+    translate: 0 24px;
+    scale: 0.94;
+    opacity: 0;
+  }
+}
+.card:hover,
+.card:focus-within {
+  transform: rotate(calc(var(--tilt) * -3)) translateY(-16px) scale(1.05);
+}
+/* jelly wobble as the card jumps up */
+.card:hover {
+  /* Keep the (finished) entrance in the list: replacing it would replay it on unhover, and its
+     first frame is invisible, so the card would blink out. */
+  animation:
+    card-in 0.5s var(--spring) var(--delay, 0s) backwards,
+    jelly 0.6s var(--spring);
+}
+@keyframes jelly {
+  30% {
+    scale: 1.06 0.93;
+  }
+  55% {
+    scale: 0.97 1.05;
+  }
+  80% {
+    scale: 1.01 0.99;
+  }
+}
+.card:hover::before,
+.card:focus-within::before {
+  box-shadow:
+    var(--shade),
+    0 0 0 3px var(--ink),
+    18px 22px 0 3px var(--ink);
+}
+/* The title grows from its left edge and stays level, so it never pokes past the card */
+.card h2 {
+  transform-origin: left center;
+  transition: transform 0.35s var(--spring);
+}
+/* Cel-gradient lettering (pink on the yellow card, gold on the cyan one) with a shine that sweeps
+   across every few seconds, faster on hover */
+.host h2 {
+  --title-grad: linear-gradient(180deg, #ffa3d6 0 40%, var(--pink) 40% 68%, var(--violet) 68%);
+}
+.join h2 {
+  --title-grad: linear-gradient(180deg, #ffffff 0 42%, var(--yellow) 42% 70%, #ffb300 70%);
+}
+.card h2.shine {
+  background-image:
+    linear-gradient(105deg, transparent 42%, rgba(255, 255, 255, 0.9) 50%, transparent 58%),
+    var(--title-grad);
+  background-size:
+    300% 100%,
+    100% 100%;
+  background-position:
+    100% 0,
+    0 0;
+  background-repeat: no-repeat;
+  animation: title-shine 4.5s ease-in-out infinite;
+}
+@keyframes title-shine {
+  0%,
+  70% {
+    background-position:
+      100% 0,
+      0 0;
+  }
+  100% {
+    background-position:
+      0 0,
+      0 0;
+  }
+}
+.card:hover h2 {
+  transform: scale(1.06);
+  animation:
+    title-shine 1.4s ease-in-out infinite,
+    title-bounce 0.4s var(--spring) 0.1s;
+}
+@keyframes title-bounce {
+  40% {
+    translate: 0 -4px;
+  }
 }
 .card h2 {
   margin: 0;
@@ -137,10 +231,47 @@ const cleanCode = computed(() => code.value.trim().toUpperCase())
   transition: transform 0.2s var(--spring);
 }
 .go:hover:not(:disabled) {
-  transform: rotate(-2deg) scale(1.06);
+  transform: rotate(-5deg) scale(1.15);
+}
+.go:hover:not(:disabled)::before {
+  box-shadow: var(--line-lift);
 }
 .go:active:not(:disabled) {
-  transform: translate(3px, 4px);
+  transform: translate(3px, 4px) scale(1.05, 0.9);
+  transition-duration: 0.06s;
+}
+.go:active:not(:disabled)::before {
+  box-shadow: var(--line-press);
+}
+/* once the card is filled in, the button pops and keeps pulsing until you click it */
+.go:not(:disabled) {
+  animation:
+    ready 0.5s var(--spring),
+    pulse 1.3s ease-in-out 0.5s infinite;
+}
+/* hold the pulse while hovered; swapping the animation out would replay the pop on unhover */
+.go:not(:disabled):hover {
+  animation-play-state: running, paused;
+}
+@keyframes ready {
+  40% {
+    transform: rotate(-6deg) scale(1.2);
+  }
+}
+@keyframes pulse {
+  50% {
+    scale: 1.08;
+  }
+}
+.input {
+  transition:
+    transform 0.2s var(--spring),
+    box-shadow 0.15s;
+}
+.input:focus {
+  outline: none;
+  transform: translateY(-2px) rotate(-0.5deg);
+  box-shadow: 5px 7px 0 var(--ink);
 }
 .go:disabled {
   opacity: 0.45;

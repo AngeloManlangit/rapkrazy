@@ -1,6 +1,6 @@
 import { beatClock } from '@/shared/audio'
 
-export type SfxKind = 'horn' | 'yeah' | 'scratch'
+export type SfxKind = 'horn' | 'yeah' | 'scratch' | 'ding'
 
 let ownContext: AudioContext | null = null
 const noise = new WeakMap<BaseAudioContext, AudioBuffer>()
@@ -35,6 +35,21 @@ export function playSfx(kind: SfxKind): void {
         o.stop(t + d + 0.6)
       }),
     )
+  } else if (kind === 'ding') {
+    // Two-note chime: "your turn".
+    ;[
+      [784, 0],
+      [1175, 0.12],
+    ].forEach(([f, d]) => {
+      const o = ctx.createOscillator()
+      const g = ctx.createGain()
+      o.type = 'triangle'
+      o.frequency.value = f!
+      decay(g, t + d!, 0.25, 0.5)
+      o.connect(g).connect(out)
+      o.start(t + d!)
+      o.stop(t + d! + 0.55)
+    })
   } else if (kind === 'scratch') {
     const s = ctx.createBufferSource()
     const fl = ctx.createBiquadFilter()
