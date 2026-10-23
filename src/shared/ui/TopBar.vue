@@ -1,14 +1,26 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { useBeatClock } from '@/shared/audio'
 import logo from '@/assets/write/logo.webp'
+import write1 from '@/assets/write/write-1.webp'
+import write2 from '@/assets/write/write-2.webp'
 import collab1 from '@/assets/write/collab-1.webp'
 import collab2 from '@/assets/write/collab-2.webp'
 import settings1 from '@/assets/write/settings-1.webp'
 import settings2 from '@/assets/write/settings-2.webp'
 
-// Back + Angelo's logo | the page's two-frame title | COLLAB and SETTINGS titles.
+// Back + Angelo's logo | the page's two-frame title | links to the other pages' titles.
 defineProps<{ title: string; frames: [string, string] }>()
+
+const PAGES = [
+  { to: '/write', label: 'Write', frames: [write1, write2], height: 326 },
+  { to: '/collab', label: 'Collab', frames: [collab1, collab2], height: 276 },
+  { to: '/settings', label: 'Settings', frames: [settings1, settings2], height: 250 },
+]
+/** Every page except the one we're on, so Write links to Collab and Collab links to Write. */
+const route = useRoute()
+const links = computed(() => PAGES.filter((p) => p.to !== route.path))
 
 const { clock } = useBeatClock()
 const thump = ref(false)
@@ -71,22 +83,13 @@ function popLogo(e: MouseEvent) {
       />
     </div>
     <nav class="nav" aria-label="Menu">
-      <RouterLink to="/collab" aria-label="Collab">
+      <RouterLink v-for="p in links" :key="p.to" :to="p.to" :aria-label="p.label">
         <span class="boil"
-          ><img :src="collab1" alt="" width="720" height="276" /><img
-            :src="collab2"
+          ><img :src="p.frames[0]" alt="" width="720" :height="p.height" /><img
+            :src="p.frames[1]"
             alt=""
             width="720"
-            height="276"
-        /></span>
-      </RouterLink>
-      <RouterLink to="/settings" aria-label="Settings">
-        <span class="boil"
-          ><img :src="settings1" alt="" width="720" height="250" /><img
-            :src="settings2"
-            alt=""
-            width="720"
-            height="250"
+            :height="p.height"
         /></span>
       </RouterLink>
     </nav>
