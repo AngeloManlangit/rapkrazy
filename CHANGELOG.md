@@ -6,6 +6,13 @@ What changed in Rapkrazy, newest first. Each entry links to its pull request.
 
 ### Added
 
+- **Video export** on /write: "Make a video" under the lyric sheet records the robot rapping your
+  lyrics over the beat (drawn on a canvas) and saves it as a video. ([#25])
+- **Rhyme tracker** on /write: after a random template, the sticker under each line shows whether
+  its rhyme group really rhymes (perfect, slant or miss), using RiTa for pronunciations. ([#25])
+- Template generator themes: comeup, culture, hood and rivalry, plus a bigger flex theme.
+  Templates are now 3 rhymed stanzas and follow the Settings lyric mode. ([#25])
+- `CHANGELOG.md`. ([#22])
 - **Rhyme Duel** in Collab, a 2-player rap battle on the mic. Each player types 2 to 8 ending words
   for the other, then raps one bar per word over the beat, landing a rhyme on beat 4. A `judge-rap`
   edge function (Gemini) hears the last word of each line; the timing check runs in the browser.
@@ -24,6 +31,10 @@ What changed in Rapkrazy, newest first. Each entry links to its pull request.
 
 ### Changed
 
+- License is now **MIT** (was GPL-3.0). ([#23])
+- New site icon (`public/icon.png`). ([#23])
+- New dependencies: `rita` (GPL-3.0) and `cmu-pronouncing-dictionary` (ISC). ([#25])
+- The `/dev/template-gen` test page was removed. ([#25])
 - Collab is **Rhyme Duel only** for now; the line-by-line writing game is hidden in the waiting
   room (commented out in `WaitingRoom.vue`). ([#21])
 - Supabase setup is one migration, `20261023000000_collab_all.sql`, which drops and rebuilds every
@@ -114,3 +125,6 @@ What changed in Rapkrazy, newest first. Each entry links to its pull request.
 [#19]: https://github.com/AngeloManlangit/rapkrazy/pull/19
 [#20]: https://github.com/AngeloManlangit/rapkrazy/pull/20
 [#21]: https://github.com/AngeloManlangit/rapkrazy/pull/21
+[#22]: https://github.com/AngeloManlangit/rapkrazy/pull/22
+[#23]: https://github.com/AngeloManlangit/rapkrazy/pull/23
+[#25]: https://github.com/AngeloManlangit/rapkrazy/pull/25
