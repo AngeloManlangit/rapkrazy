@@ -45,3 +45,6 @@ CLAUDE.local.md
 .env
 # Session log
 Log.md
+
+# Supabase CLI local link files
+supabase/.temp/
