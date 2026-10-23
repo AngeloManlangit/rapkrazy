@@ -1,0 +1,106 @@
+{
+  "theme": "hood",
+
+  "shapes": {
+    "block": [
+      "#open# #scene#, that's my {{noun:end}}",
+      "#scene#, every corner tells a {{noun:end}}",
+      "#open# #scene#, I'm {{adjective:end}}",
+      "#scene#, that's the {{noun:end}}"
+    ],
+    "struggle": [
+      "#hardship#, but we still {{verb:end}}",
+      "#open# #hardship#, learned to {{verb:end}}",
+      "#open# #hardship#, we {{verb:end}}",
+      "#hardship#, but we stay {{adjective:end}}"
+    ],
+    "pride": [
+      "#open# #proud#, I stay {{adjective:end}}",
+      "#proud#, can't take it from my {{noun:end}}",
+      "#open# #proud#, that's my {{noun:end}}",
+      "#proud#, I'll always {{verb:end}}"
+    ],
+    "hope": [
+      "#dream#, one day I'll {{verb:end}}",
+      "#open# #dream#, watch me {{verb:end}}",
+      "#open# #dream#, I'm {{adjective:end}}",
+      "#dream#, that's my {{noun:end}}"
+    ]
+  },
+
+  "pools": {
+    "open": [
+      { "text": "Concrete jungle,", "syllables": 4 },
+      { "text": "Where I'm from,", "syllables": 3 },
+      { "text": "Corner store,", "syllables": 3 },
+      { "text": "Summer heat,", "syllables": 3 },
+      { "text": "Home sweet home,", "syllables": 3 },
+      { "text": "Block party,", "syllables": 3 },
+      { "text": "Down the street,", "syllables": 3 },
+      { "text": "Summer nights,", "syllables": 3 },
+      { "text": "Front porch,", "syllables": 2 },
+      { "text": "Bodega light,", "syllables": 4 },
+      { "text": "Rooftop view,", "syllables": 3 },
+      { "text": "Third floor walk-up,", "syllables": 4 },
+      { "text": "Back of the bus,", "syllables": 4 },
+      { "text": "Under streetlights,", "syllables": 4 },
+      { "text": "Fire escape,", "syllables": 3 },
+      { "text": "Barbershop talk,", "syllables": 4 }
+    ],
+    "scene": [
+      { "text": "neighbors know your name", "syllables": 5 },
+      { "text": "graffiti walls", "syllables": 4 },
+      { "text": "ice cream truck bells", "syllables": 5 },
+      { "text": "music in the air", "syllables": 5 },
+      { "text": "bass rattles windows", "syllables": 5 },
+      { "text": "sirens sing at night", "syllables": 5 },
+      { "text": "old heads on the steps", "syllables": 5 },
+      { "text": "corner lights flicker", "syllables": 5 },
+      { "text": "laundry on the line", "syllables": 5 },
+      { "text": "hoops till streetlights glow", "syllables": 5 },
+      { "text": "domino tables", "syllables": 5 },
+      { "text": "stoop talk all night", "syllables": 4 },
+      { "text": "kids on the corner", "syllables": 5 }
+    ],
+    "hardship": [
+      { "text": "bills stack up like snow", "syllables": 5 },
+      { "text": "nothing came for free", "syllables": 5 },
+      { "text": "rent is always due", "syllables": 5 },
+      { "text": "made a way from none", "syllables": 5 },
+      { "text": "pockets running dry", "syllables": 5 },
+      { "text": "grind just to get by", "syllables": 5 },
+      { "text": "lights cut off, cold nights", "syllables": 5 },
+      { "text": "mama's double shift", "syllables": 5 },
+      { "text": "no safety net", "syllables": 4 },
+      { "text": "hope don't pay rent", "syllables": 4 },
+      { "text": "food stamps, empty shelves", "syllables": 5 },
+      { "text": "struggle's all we knew", "syllables": 5 }
+    ],
+    "proud": [
+      { "text": "I rep where I'm from", "syllables": 5 },
+      { "text": "this place made me strong", "syllables": 5 },
+      { "text": "wear it like a crown", "syllables": 5 },
+      { "text": "roots run deep", "syllables": 3 },
+      { "text": "this block raised me right", "syllables": 5 },
+      { "text": "built from the ground up", "syllables": 5 },
+      { "text": "city in my veins", "syllables": 5 },
+      { "text": "never forget the name", "syllables": 5 },
+      { "text": "rep it with my chest", "syllables": 5 },
+      { "text": "this hood made me", "syllables": 4 },
+      { "text": "proud of where I'm from", "syllables": 5 }
+    ],
+    "dream": [
+      { "text": "Dreams bigger than blocks", "syllables": 5 },
+      { "text": "Eyes on the skyline", "syllables": 5 },
+      { "text": "Make this place proud", "syllables": 4 },
+      { "text": "One day we get out", "syllables": 5 },
+      { "text": "Buy mama a house", "syllables": 5 },
+      { "text": "See past these streets", "syllables": 4 },
+      { "text": "Heart set on the top", "syllables": 5 },
+      { "text": "Little dreams still burn", "syllables": 5 },
+      { "text": "Leave the light on", "syllables": 4 },
+      { "text": "Make it out, give back", "syllables": 5 },
+      { "text": "Chasing something more", "syllables": 5 }
+    ]
+  }
+}

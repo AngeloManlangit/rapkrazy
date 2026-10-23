@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, wa
 import NotebookSheet from '@/shared/ui/NotebookSheet.vue'
 import BarRow from '@/shared/ui/BarRow.vue'
 import { flowOf } from './flow'
+import {type RhymeStatus } from './rhymeTracker'
 
 // The taped notebook sheet: one line per bar, beat dots under each line, and a flow sticker
 // (syllables per bar). The bar being played gets the yellow highlighter. Stays still: it is
@@ -15,6 +16,9 @@ const props = defineProps<{
   /** Beat within the active bar. */
   beat: number
   beatsPerBar: number
+  rhymes: RhymeStatus[]
+  /** One rhyme group ('1A', '1B', null...) per line. */
+  groups: (string | null)[]
 }>()
 const emit = defineEmits<{ focusLine: [el: HTMLElement | null] }>()
 
@@ -22,6 +26,19 @@ const sheet = useTemplateRef<InstanceType<typeof NotebookSheet>>('sheet')
 const list = computed(() => sheet.value?.list ?? null)
 const inputs = ref<HTMLTextAreaElement[]>([])
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
+const letterOf = (g: string | null | undefined) => g?.replace(/^\d+/, '') ?? ''
+
+const STATUS: Record<RhymeStatus, { mark: string; hint: (letter: string) => string }> = {
+  none: { mark: '', hint: () => '' },
+  blank: { mark: '…', hint: (l) => `Fill in the blank to rhyme ${l}` },
+  alone: { mark: '·', hint: (l) => `Waiting for another ${l} line` },
+  perfect: { mark: '✓', hint: (l) => `Perfect rhyme with the other ${l} line` },
+  slant: { mark: '≈', hint: (l) => `Slant rhyme with the other ${l} line` },
+  miss: { mark: '✗', hint: (l) => `Doesn't rhyme with the other ${l} line` },
+}
+
+const showRhyme = (i: number) => !!props.groups[i] && !!props.rhymes[i] && props.rhymes[i] !== 'none'
+const hintOf = (i: number) => STATUS[props.rhymes[i] ?? 'none'].hint(letterOf(props.groups[i]))
 
 /**
  * The line list scrolls inside the sheet so the page fits one screen. While playing, follow the
@@ -43,7 +60,6 @@ watch(
     })
   },
 )
-
 /** Grow each textarea to its content so long lines wrap instead of scrolling. */
 function fit(ta: HTMLTextAreaElement) {
   ta.style.height = 'auto'
@@ -83,7 +99,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <NotebookSheet
+    <NotebookSheet
     ref="sheet"
     title="Verse 1"
     :note="`One line per bar · dots are the ${beatsPerBar} beats`"
@@ -108,6 +124,15 @@ onBeforeUnmount(() => {
         @blur="emit('focusLine', null)"
       ></textarea>
       <template #sticker>
+        <span
+          v-if="showRhyme(i)"
+          class="ink-sticker rhyme"
+          :class="[`s-${rhymes[i]}`, `g-${letterOf(groups[i])}`]"
+          :title="hintOf(i)"
+          :aria-label="`Rhyme ${letterOf(groups[i])}: ${hintOf(i)}`"
+        >
+          {{ letterOf(groups[i]) }}<b>{{ STATUS[rhymes[i] ?? 'none'].mark }}</b>
+        </span>
         <span class="ink-sticker" :class="flowOf(text).kind">{{ flowOf(text).label }}</span>
       </template>
     </BarRow>
@@ -117,6 +142,9 @@ onBeforeUnmount(() => {
         <span class="ink-sticker ok">On flow</span>
         <span class="ink-sticker busy">Busy</span>
         <span class="ink-sticker crowd">Crowded</span>
+        <span class="ink-sticker rhyme g-A s-perfect">A✓ Perfect</span>
+        <span class="ink-sticker rhyme g-A s-slant">A≈ Slant</span>
+        <span class="ink-sticker rhyme g-A s-miss">A✗ Miss</span>
         <span>syllables per bar, so you know if a line fits before the robot raps it</span>
       </div>
     </template>
@@ -146,6 +174,125 @@ textarea:focus {
 textarea::placeholder {
   color: rgba(11, 6, 20, 0.35);
 }
+.beats-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;      /* was: gap: 18px */
+  padding: 9px 16px 0 8px;
+}
+.dots {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  max-width: 400px;
+}
+.dots i {
+  width: 13px;
+  height: 13px;
+  border-radius: 50% 45% 55% 50%;
+  box-shadow:
+    0 0 0 3px var(--ink),
+    2px 3px 0 3px var(--ink);
+  transition:
+    transform 0.18s var(--spring),
+    background 0.05s;
+}
+.dots i.hit {
+  background: var(--pink);
+  transform: scale(1.6) rotate(12deg);
+}
+.flow {
+  flex: none;
+  margin-left: auto;
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  border-radius: 999px 900px 999px 950px;
+  padding: 5px 10px 2px;
+  position: relative;
+  isolation: isolate;
+  min-width: 76px;
+  text-align: center;
+  transform: rotate(2deg);
+}
+/* fill + inked outline on ::before so the rough filter doesn't smear the label */
+.flow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--flow-bg);
+  box-shadow: var(--line-sm);
+  filter: url(#rough);
+}
+.flow.ok {
+  --flow-bg: linear-gradient(168deg, #b6ffd9 0 25%, var(--mint) 25% 70%, #1fd182 70%);
+}
+.flow.busy {
+  --flow-bg: var(--cel-yellow);
+}
+.flow.crowd {
+  --flow-bg: var(--cel-pink);
+  color: var(--paper);
+}
+.flow.thin {
+  --flow-bg: linear-gradient(168deg, #eef1f8 0 25%, var(--metal) 25% 70%, #9aa3bd 70%);
+}
+.rhyme {
+  flex: none;
+  margin-left: auto;
+  position: relative;
+  isolation: isolate;
+  min-width: 44px;
+  text-align: center;
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  padding: 5px 10px 2px;
+  border-radius: 900px 999px 950px 999px;
+  transform: rotate(-3deg);
+  transition:
+    transform 0.25s var(--spring),
+    opacity 0.2s;
+  --rhyme-bg: var(--cel-yellow);
+}
+.rhyme + .flow { margin-left: 0; }
+.rhyme b { margin-left: 3px; }
+.rhyme::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--rhyme-bg);
+  box-shadow: var(--line-sm);
+  filter: url(#rough);
+}
+
+/* letter colors */
+.rhyme.g-A { --rhyme-bg: var(--cel-pink); color: var(--paper); }
+.rhyme.g-B { --rhyme-bg: var(--cel-yellow); }
+.rhyme.g-C { --rhyme-bg: linear-gradient(168deg, #b6ffd9 0 25%, var(--mint) 25% 70%, #1fd182 70%); }
+.rhyme.g-D { --rhyme-bg: linear-gradient(168deg, #eef1f8 0 25%, var(--metal) 25% 70%, #9aa3bd 70%); }
+
+/* status looks */
+.rhyme.s-blank,
+.rhyme.s-alone { opacity: 0.5; }
+.rhyme.s-perfect { transform: rotate(-3deg) scale(1.1); }
+.rhyme.s-slant { transform: rotate(-3deg) scale(1.05); }
+.rhyme.s-slant b { color: #b8860b; }
+.rhyme.s-miss { animation: rhyme-shake 0.3s; }
+.rhyme.s-miss b { color: #ff2d55; }
+
+@keyframes rhyme-shake {
+  25% { translate: -3px 0; }
+  75% { translate: 3px 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rhyme.s-miss { animation: none; }
+}
 .legend {
   flex: none;
   margin-top: 10px;
@@ -160,5 +307,41 @@ textarea::placeholder {
   min-width: 0;
   margin-left: 0;
   font-size: 11px;
+}
+.legend .rhyme {
+  min-width: 0;
+  margin-left: 0;
+  font-size: 11px;
+}
+/* stacked layouts scroll the page anyway; keep the sheet shorter than the screen */
+@media (max-width: 1000px) {
+  .sheet {
+    height: min(75dvh, 760px);
+    min-height: 420px;
+  }
+}
+@media (max-width: 640px) {
+  .sheet {
+    padding: 22px 16px 24px 50px;
+    transform: none;
+  }
+  .lines {
+    margin-left: -46px;
+    padding-left: 46px;
+  }
+  .sheet::before {
+    background:
+      linear-gradient(
+        to right,
+        transparent 32px,
+        rgba(255, 61, 165, 0.7) 32px 35px,
+        transparent 35px
+      ),
+      repeating-linear-gradient(to bottom, transparent 0 63px, var(--paper-line) 63px 65px),
+      var(--paper);
+  }
+  .num {
+    left: -42px;
+  }
 }
 </style>

@@ -1,0 +1,58 @@
+{
+  "theme": "rivalry",
+
+  "shapes": {
+    "diss": [
+      "#open# #insult#, you're just a {{noun:end}}",
+      "#open# #insult#, can't even {{verb:end}}",
+      "#open# #insult#, can't even {{verb:end}}",
+      "#open# #insult#, what a {{noun:end}}",
+      "#insult#, no wonder you {{verb:end}}"
+    ],
+    "promise": [
+      "#warning# when I {{verb:end}}",
+      "#open# #warning#, then I {{verb:end}}"
+    ],
+    "roast": [
+    "#open# #insult#, give it a {{noun:end}}",
+    "#insult#, someone call the {{noun:end}}",
+    "#open# #insult#, take a {{noun:end}}",
+    "#insult#, go back to {{noun:end}}"
+  ],
+    "punchline": [
+      "#insult# and I'm not even {{adjective:end}}",
+      "#open# #insult#, that's {{adjective:end}}"
+    ]
+  },
+
+  "pools": {
+    "open": [
+      { "text": "Look at you now,", "syllables": 4 },
+      { "text": "Step up to the mic,", "syllables": 5 },
+      { "text": "Heard the whole story,", "syllables": 5 },
+      { "text": "Cute little flow,", "syllables": 4 },
+      { "text": "Say it to my face,", "syllables": 5 },
+      { "text": "You soft as shit,", "syllables": 4, "explicit": true },
+      { "text": "Boy sweet as sugar", "syllables": 5}
+    ],
+    "insult": [
+      { "text": "fake ass bastard", "syllables": 4, "explicit": true },
+      { "text": "yo chains fake", "syllables": 3 },
+      { "text": "those chains plastic", "syllables": 3 },
+      { "text": "goofy ass flow", "syllables": 4, "explicit": true },
+      { "text": "your best bar was a typo", "syllables": 6 },
+      { "text": "lil jit, you nothing", "syllables": 5 },
+      { "text": "all talk, no bars", "syllables": 4 },
+      { "text": "you mumble bars", "syllables": 4 },
+      { "text": "speak up, you fool", "syllables": 4 },
+      { "text": "weak as hell", "syllables": 3, "explicit": true }
+    ],
+    "warning": [
+      { "text": "I'll end this in one verse", "syllables": 6 },
+      { "text": "one bar and you're done", "syllables": 5 },
+      { "text": "you won't last a round", "syllables": 5 },
+      { "text": "better pack your bags", "syllables": 5 },
+      { "text": "got them on my side", "syllables": 5 }
+    ]
+  }
+}
