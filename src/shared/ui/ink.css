@@ -191,6 +191,51 @@
   box-shadow: var(--line-press);
 }
 
+/* Pill sticker beside a row's beat balls (flow meter, rap end words). Fill + inked outline sit on
+   ::before so the rough filter doesn't smear the label. Kinds pick the fill. */
+.rk .ink-sticker {
+  flex: none;
+  margin-left: auto;
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  border-radius: 999px 900px 999px 950px;
+  padding: 5px 10px 2px;
+  position: relative;
+  isolation: isolate;
+  min-width: 76px;
+  text-align: center;
+  transform: rotate(2deg);
+  color: var(--text-ink);
+}
+.rk .ink-sticker::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--sticker-bg, var(--cel-paper));
+  box-shadow: var(--line-sm);
+  filter: url(#rough);
+}
+.rk .ink-sticker.ok {
+  --sticker-bg: linear-gradient(168deg, #b6ffd9 0 25%, var(--mint) 25% 70%, #1fd182 70%);
+}
+.rk .ink-sticker.busy {
+  --sticker-bg: var(--cel-yellow);
+}
+.rk .ink-sticker.crowd {
+  --sticker-bg: var(--cel-pink);
+  color: var(--paper);
+}
+.rk .ink-sticker.thin {
+  --sticker-bg: linear-gradient(168deg, #eef1f8 0 25%, var(--metal) 25% 70%, #9aa3bd 70%);
+}
+.rk .ink-sticker.dark {
+  --sticker-bg: linear-gradient(168deg, #3a1f56 0 20%, var(--ink) 20%);
+  color: var(--yellow);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rk *,
   .rk *::before,
