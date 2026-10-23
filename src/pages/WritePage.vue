@@ -7,6 +7,7 @@ import '@fontsource/rubik/700.css'
 import '@/shared/ui/ink.css'
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, useTemplateRef, watch } from 'vue'
 import { barToSeconds, useBeatClock } from '@/shared/audio'
+import VideoPanel from '@/features/video-export/VideoPanel.vue'
 import type { Beat, LyricLine } from '@/shared/types'
 import InkFilters from '@/shared/ui/InkFilters.vue'
 import TopBar from '@/shared/ui/TopBar.vue'
@@ -106,6 +107,14 @@ watch([lines, beat], () => {
   clearTimeout(debounce)
   debounce = setTimeout(prepare, 400)
 })
+/** Bars to put in the video: up to the last line with text. */
+const usedBars = computed(() => lines.value.reduce((n, l, i) => (l.trim() ? i + 1 : n), 0))
+
+/** Skip the 400 ms debounce and make sure every chunk is synthesized. */
+function flushPrepare() {
+  clearTimeout(debounce)
+  return prepare()
+}
 
 /* The word being sung right now, for the bubble and the robot's squint and head tilt. */
 let frame = 0
@@ -207,6 +216,7 @@ onBeforeUnmount(() => {
           @add="toast('Adding your own sounds is coming soon')"
         />
       </main>
+      <VideoPanel :rapper="rapper" :bars="usedBars" :prepare="flushPrepare" @toast="toast" />
       <footer class="credit"><MadeBy /></footer>
     </div>
     <div class="toast" :class="{ show: toastShown }" role="status">{{ toastText }}</div>

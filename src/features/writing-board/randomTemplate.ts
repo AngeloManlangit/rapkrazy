@@ -10,8 +10,8 @@ export interface Template {
  * Two rhymed stanzas from the template generator, flattened to plain lyric lines. Blanks become
  * `[noun]`-style markers the player overwrites, so the robot can still read the line aloud.
  */
-export function randomTemplate(): Template {
-  const raw = [1, 2].map((n) => assignRhymeScheme(generateTraceryText(), n)).join('\n')
+export function randomTemplate(allowExplicit: boolean): Template {
+  const raw = [1, 2].map((n) => assignRhymeScheme(generateTraceryText(allowExplicit), n)).join('\n')
   const lines: string[] = []
   const groups: (string | null)[] = []
 

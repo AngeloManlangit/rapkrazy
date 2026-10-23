@@ -10,7 +10,7 @@ const modules = import.meta.glob<ThemeFile>("./themes/*.json", {
   import: "default",
 }); //retrieves the theme JSON files from the themes folder and imports them as modules
 
-export function buildGrammar(allowExplicit = false) {
+export function buildGrammar(allowExplicit: boolean) {
   const grammar: Record<string, string[]> = {
     themePick: []
   }; //only the themePick is initialized here, the rest of the grammar will be built dynamically based on the imported theme JSON files

@@ -25,11 +25,6 @@ if (import.meta.env.DEV) {
       name: 'dev-robot',
       component: () => import('@/features/robot/dev/RobotDemo.vue'),
     },
-    {
-      path: '/dev/template-gen',
-      name: 'dev-template-gen',
-      component: () => import('@/features/template-gen/TempGenDemo.vue'),
-    },
   ]
   devRoutes.forEach((r) => router.addRoute(r))
 }
