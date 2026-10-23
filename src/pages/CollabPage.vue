@@ -5,7 +5,8 @@ import '@fontsource/rubik/400.css'
 import '@fontsource/rubik/500.css'
 import '@fontsource/rubik/700.css'
 import '@/shared/ui/ink.css'
-import { computed, onMounted, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import { useBeatClock } from '@/shared/audio'
 import InkFilters from '@/shared/ui/InkFilters.vue'
 import TopBar from '@/shared/ui/TopBar.vue'
@@ -52,6 +53,17 @@ onMounted(async () => {
   await ready()
   if (hasBackend) await game.resume()
 })
+
+/* Mid-game, leaving skips your turns for everyone else, so ask first. */
+const LEAVE_WARNING = 'The game is still going. Leave anyway? Your turns will be skipped.'
+onBeforeRouteLeave(() => game.phase.value !== 'writing' || confirm(LEAVE_WARNING))
+function warnOnUnload(e: BeforeUnloadEvent) {
+  if (game.phase.value !== 'writing') return
+  e.preventDefault()
+  e.returnValue = ''
+}
+onMounted(() => addEventListener('beforeunload', warnOnUnload))
+onBeforeUnmount(() => removeEventListener('beforeunload', warnOnUnload))
 </script>
 
 <template>
@@ -101,6 +113,7 @@ onMounted(async () => {
             :host-id="game.room.value.hostId"
             :writer-id="game.writer.value?.id ?? ''"
             :writer-name="game.writer.value?.name ?? ''"
+            :next-id="game.nextWriter.value?.id ?? ''"
             :is-my-turn="game.isMyTurn.value"
             :submitted="game.alreadyWrote.value"
             :previous-text="game.previousLine.value?.text ?? null"
@@ -118,9 +131,12 @@ onMounted(async () => {
           <RevealView
             v-else
             :lines="revealLines"
+            :votes="game.votes.value"
+            :me="game.me.value"
             :is-host="game.isHost.value"
             :busy="game.busy.value"
             @again="game.playAgain"
+            @vote="game.vote"
             @leave="game.leave"
           />
         </template>
