@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { barToSeconds, useBeatClock } from '@/shared/audio'
 import type { RoomPlayer } from '@/shared/types'
 import PlayerSeat from './PlayerSeat.vue'
 
@@ -24,10 +25,51 @@ const props = defineProps<{
 const emit = defineEmits<{ submit: [text: string] }>()
 
 const text = ref('')
+
+/* "Hear the beat": plays the bar this line will sit on, on a loop, so the writer can feel the flow. */
+const { clock, isPlaying, position } = useBeatClock()
+const hearing = ref(false)
+const lineBar = computed(() => {
+  const total = clock.beat?.totalBars ?? 1
+  return Math.min(props.turnIndex, Math.max(total - 1, 0))
+})
+
+function stopBeat() {
+  hearing.value = false
+  clock.pause()
+}
+function toggleBeat() {
+  const beat = clock.beat
+  if (hearing.value) return stopBeat()
+  if (!beat) return
+  hearing.value = true
+  clock.seek(barToSeconds(beat, lineBar.value))
+  void clock.play()
+}
+/* Past the end of this line's bar? Jump back to its start. */
+watch(
+  () => position.value.bar,
+  (bar) => {
+    const beat = clock.beat
+    if (hearing.value && beat && bar > lineBar.value) clock.seek(barToSeconds(beat, lineBar.value))
+  },
+)
 watch(
   () => props.turnIndex,
-  () => (text.value = ''),
+  () => {
+    text.value = ''
+    if (hearing.value) stopBeat()
+  },
 )
+watch(
+  () => props.isMyTurn && !props.submitted,
+  (writing) => {
+    if (!writing && hearing.value) stopBeat()
+  },
+)
+onBeforeUnmount(() => {
+  if (hearing.value) clock.pause()
+})
 
 const canSend = computed(
   () => props.isMyTurn && !props.submitted && !props.busy && !!text.value.trim(),
@@ -83,7 +125,18 @@ function send() {
             @keydown.enter.exact.prevent="send"
           ></textarea>
         </label>
-        <button class="send ink glint" type="submit" :disabled="!canSend">Send line</button>
+        <div class="buttons">
+          <button class="send ink glint" type="submit" :disabled="!canSend">Send line</button>
+          <button
+            class="hear ink glint"
+            type="button"
+            :aria-pressed="hearing && isPlaying"
+            :disabled="!clock.beat"
+            @click="toggleBeat"
+          >
+            {{ hearing && isPlaying ? 'Stop beat' : `Hear bar ${lineBar + 1}` }}
+          </button>
+        </div>
       </form>
       <p v-else-if="isMyTurn" class="wait">Locked in. Waiting for the next turn...</p>
       <p v-else class="wait">{{ writerName }} is writing...</p>
@@ -179,6 +232,28 @@ function send() {
   border-radius: 12px 16px 10px 14px;
   padding: 10px 14px;
   box-shadow: 3px 4px 0 var(--ink);
+}
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.hear {
+  --fill: var(--cel-cyan);
+  font-family: var(--display);
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  color: var(--text-ink);
+  padding: 12px 24px 9px;
+  border-radius: 16px 22px 14px 20px;
+  transition: transform 0.2s var(--spring);
+}
+.hear:hover:not(:disabled) {
+  transform: rotate(2deg) scale(1.06);
+}
+.hear:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 .send {
   --fill: var(--cel-pink);

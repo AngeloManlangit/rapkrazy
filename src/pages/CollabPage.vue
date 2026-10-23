@@ -9,6 +9,7 @@ import { computed, onMounted, watch } from 'vue'
 import { useBeatClock } from '@/shared/audio'
 import InkFilters from '@/shared/ui/InkFilters.vue'
 import TopBar from '@/shared/ui/TopBar.vue'
+import MadeBy from '@/shared/ui/MadeBy.vue'
 import { isCustom, useSongCatalog } from '@/features/song-catalog/useSongCatalog'
 import LobbyView from '@/features/multiplayer/LobbyView.vue'
 import WaitingRoom from '@/features/multiplayer/WaitingRoom.vue'
@@ -126,6 +127,7 @@ onMounted(async () => {
 
         <p v-else class="loading toon">Loading...</p>
       </main>
+      <footer class="credit"><MadeBy /></footer>
     </div>
   </div>
 </template>
@@ -140,6 +142,11 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 22px;
+}
+.credit {
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
 }
 .stage {
   display: grid;

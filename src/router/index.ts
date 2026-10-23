@@ -9,6 +9,12 @@ const router = createRouter({
     { path: '/write', name: 'write', component: () => import('@/pages/WritePage.vue') },
     { path: '/collab', name: 'collab', component: () => import('@/pages/CollabPage.vue') },
     { path: '/settings', name: 'settings', component: () => import('@/pages/SettingsPage.vue') },
+  ],
+})
+
+// Test pages for the team. Only registered by `npm run dev`, never in a production build.
+if (import.meta.env.DEV) {
+  const devRoutes = [
     {
       path: '/dev/clock',
       name: 'dev-clock',
@@ -24,7 +30,8 @@ const router = createRouter({
       name: 'dev-template-gen',
       component: () => import('@/features/template-gen/TempGenDemo.vue'),
     },
-  ],
-})
+  ]
+  devRoutes.forEach((r) => router.addRoute(r))
+}
 
 export default router
