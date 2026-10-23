@@ -21,6 +21,7 @@ import LyricSheet from '@/features/writing-board/LyricSheet.vue'
 import WritingTools from '@/features/writing-board/WritingTools.vue'
 import { randomTemplate } from '@/features/writing-board/randomTemplate'
 import { rhymeStatuses} from '@/features/writing-board/rhymeTracker'
+import { useContentMode } from '@/shared/contentMode'
 import AiWriterPanel from '@/features/ai-writer/AiWriterPanel.vue'
 import SoundBoard from '@/features/soundboard/SoundBoard.vue'
 import write1 from '@/assets/write/write-1.webp'
@@ -137,7 +138,7 @@ function toggleRap() {
 }
 
 const aiWriter = useTemplateRef<InstanceType<typeof AiWriterPanel>>('aiWriter')
-
+const { mode } = useContentMode()
 /** Put the AI bars on the lyric sheet, one per bar. */
 function onAiLyrics(payload: { title: string; lines: string[] }) {
   lines.value = sized(payload.lines, lines.value.length)
@@ -149,7 +150,7 @@ function onAiLyrics(payload: { title: string; lines: string[] }) {
 function loadTemplate() {
   try {
     const n = lines.value.length
-    const t = randomTemplate()
+    const t = randomTemplate(mode.value === 'explicit')
     lines.value = sized(t.lines, n)
     groups.value = Array.from({ length: n }, (_, i) => t.groups[i] ?? null) //the padded lines
     robot.value?.react('happy', 1200)
