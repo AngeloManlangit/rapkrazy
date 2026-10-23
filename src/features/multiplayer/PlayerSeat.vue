@@ -18,7 +18,7 @@ defineProps<{
       <span v-if="host" class="badge">Host</span>
       <span v-else-if="you" class="badge">You</span>
     </template>
-    <span v-else class="name">Waiting...</span>
+    <span v-else class="name">Waiting</span>
   </li>
 </template>
 
@@ -39,6 +39,56 @@ defineProps<{
     0 0 0 3px var(--ink),
     4px 5px 0 3px var(--ink);
   transition: transform 0.2s var(--spring);
+}
+/* A player sitting down: the sticker slaps onto the seat */
+.seat:not(.empty) {
+  animation: sit 0.45s var(--spring);
+}
+@keyframes sit {
+  from {
+    scale: 0.6 1.25;
+    rotate: -6deg;
+    opacity: 0;
+  }
+  60% {
+    scale: 1.06 0.92;
+  }
+}
+.seat:not(.empty):hover {
+  transform: translateX(6px) rotate(-1.5deg);
+}
+/* Empty seats breathe and their dots tick, so the lobby feels like it is waiting */
+.empty {
+  animation: breathe 2.4s ease-in-out infinite;
+}
+@keyframes breathe {
+  50% {
+    opacity: 0.35;
+  }
+}
+.empty .name::after {
+  content: '';
+  animation: seat-dots 1.2s steps(4, end) infinite;
+}
+@keyframes seat-dots {
+  0% {
+    content: '';
+  }
+  25% {
+    content: '.';
+  }
+  50% {
+    content: '..';
+  }
+  75% {
+    content: '...';
+  }
+}
+.badge {
+  transition: transform 0.2s var(--spring);
+}
+.seat:hover .badge {
+  transform: rotate(-8deg) scale(1.15);
 }
 .c0 {
   --c: var(--yellow);
