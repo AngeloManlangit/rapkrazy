@@ -5,14 +5,22 @@
     "boast": [
       "I'm so #adj# I make #victim# look {{adjective:end}}",
       "#open# #brag#, got that {{noun:end}}",
-      "They call me {{nickname:name}}, #brag# like {{noun:end}}"
+      "They call me {{nickname:name}}, #brag# like {{noun:end}}",
+      "#open# #brag#, I'm #adj# like {{noun:end}}",
+      "I stay #adj#, #victim# stay {{adjective:end}}"
+
     ],
     "simile": [
-      "#open# #brag# like {{noun:end}} in a {{place:end}}"
+      "#open# #brag# like {{noun:notend}} in a {{place:end}}",
+      "I'm #adj# like {{noun:notend}} in a {{place:end}}",
+      "#open# #adj# as {{noun:end}}"
     ],
     "punchline": [
       "#victim# talk big, but I'm the {{noun:end}}",
-      "Tell {{nickname:rival}} I said #taunt#"
+      "Tell {{nickname:rival}} I said {{verb:end}}",
+      "You think your tough? #taunt# I'm {{adjective:end}}",
+      "#victim# can't be #adj#, I'm the {{noun:end}}"
+
     ]
   },
 
@@ -21,26 +29,69 @@
       { "text": "fresh", "syllables": 1 },
       { "text": "icy", "syllables": 2 },
       { "text": "smooth", "syllables": 1 },
-      { "text": "filthy", "syllables": 2, "explicit": true }
+      { "text": "fly", "syllables": 1 },
+      { "text": "hard", "syllables": 1 },
+      { "text": "crazy", "syllables": 2 },
+      { "text": "gangsta", "syllables": 2 },
+      { "text": "high", "syllables": 1, "explicit": true },
+      { "text": "filthy", "syllables": 2, "explicit": true },
+      { "text": "clean", "syllables": 1 },
+      { "text": "cold", "syllables": 1 },
+      { "text": "slick", "syllables": 1 },
+      { "text": "sharp", "syllables": 1 },
+      { "text": "loud", "syllables": 1 },
+      { "text": "lit", "syllables": 1 },
+      { "text": "wavy", "syllables": 2 },
+      { "text": "golden", "syllables": 2 },
+      { "text": "wicked", "syllables": 2 },
+      { "text": "savage", "syllables": 2 },
+      { "text": "ruthless", "syllables": 2 },
+      { "text": "supreme", "syllables": 2 },
+      { "text": "royal", "syllables": 2 },
+      { "text": "deadly", "syllables": 2 },
+      { "text": "legendary", "syllables": 4 },
+      { "text": "buzzed", "syllables": 1, "explicit": true },
+      { "text": "stoned", "syllables": 1, "explicit": true },
+      { "text": "wasted", "syllables": 2, "explicit": true }
     ],
     "victim": [
-      { "text": "the sun", "syllables": 2 },
-      { "text": "your whole crew", "syllables": 3 },
-      { "text": "last year's champ", "syllables": 3 }
+      { "text": "yo momma", "syllables": 3 },
+      { "text": "the big 3", "syllables": 3 },
+      { "text": "yo sorry ahh", "syllables": 4, "explicit": true },
+      { "text": "your trash ahh", "syllables": 3, "explicit": true },
+      { "text": "you clowns", "syllables": 2, "explicit": true },
+      { "text": "them clowns", "syllables": 2, "explicit": true },
+      { "text": "the king", "syllables": 2 },
+      { "text": "the whole block", "syllables": 3 }
     ],
     "open": [
       { "text": "Pulled up deep,", "syllables": 3 },
       { "text": "Walked in late,", "syllables": 3 },
-      { "text": "Stepped in clean,", "syllables": 3 }
+      { "text": "Stepped in clean,", "syllables": 3 },
+      { "text": "Rolled up late,", "syllables": 3 },
+      { "text": "The king comes,", "syllables": 3 },
+      { "text": "Hit the scene,", "syllables": 3 },
+      { "text": "Came in hot,", "syllables": 3 },
+      { "text": "Slid in quick,", "syllables": 3 },
+      { "text": "Showed up first,", "syllables": 3 },
+      { "text": "Pulled up loud,", "syllables": 3 },
+      { "text": "Walked on stage,", "syllables": 3 },
+      { "text": "Stepped out slow,", "syllables": 3 }
     ],
     "brag": [
       { "text": "whole room stopped to stare", "syllables": 5 },
       { "text": "the DJ cut the track", "syllables": 5 },
-      { "text": "every head turned round", "syllables": 5 }
+      { "text": "headlights on me", "syllables": 4 },
+      { "text": "looking up to me", "syllables": 5 },
+      { "text": "well I'm him", "syllables": 2 },
+      { "text": "chains shinin", "syllables": 3 },
+      { "text": "covered in gucci", "syllables": 5 }
     ],
     "taunt": [
-      { "text": "better luck next time", "syllables": 4 },
-      { "text": "don't wait up tonight", "syllables": 4 }
+      { "text": "try and keep up", "syllables": 4 },
+      { "text": "second-rate fool", "syllables": 4 },
+      { "text": "frog in a well", "syllables": 4 },
+      { "text": "yo panty's shakin", "syllables": 5 }
     ]
   }
 }

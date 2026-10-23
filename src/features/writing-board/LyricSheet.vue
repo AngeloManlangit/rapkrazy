@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { flowOf } from './flow'
+import {type RhymeStatus } from './rhymeTracker'
 
 // The taped notebook sheet: one line per bar, beat dots under each line, and a flow sticker
 // (syllables per bar). The bar being played gets the yellow highlighter. Stays still: it is
@@ -13,12 +14,28 @@ const props = defineProps<{
   /** Beat within the active bar. */
   beat: number
   beatsPerBar: number
+  rhymes: RhymeStatus[]
+  /** One rhyme group ('1A', '1B', null...) per line. */
+  groups: (string | null)[]
 }>()
 const emit = defineEmits<{ focusLine: [el: HTMLElement | null] }>()
 
 const list = ref<HTMLOListElement | null>(null)
 const inputs = ref<HTMLTextAreaElement[]>([])
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
+const letterOf = (g: string | null | undefined) => g?.replace(/^\d+/, '') ?? ''
+
+const STATUS: Record<RhymeStatus, { mark: string; hint: (letter: string) => string }> = {
+  none: { mark: '', hint: () => '' },
+  blank: { mark: '…', hint: (l) => `Fill in the blank to rhyme ${l}` },
+  alone: { mark: '·', hint: (l) => `Waiting for another ${l} line` },
+  perfect: { mark: '✓', hint: (l) => `Perfect rhyme with the other ${l} line` },
+  slant: { mark: '≈', hint: (l) => `Slant rhyme with the other ${l} line` },
+  miss: { mark: '✗', hint: (l) => `Doesn't rhyme with the other ${l} line` },
+}
+
+const showRhyme = (i: number) => !!props.groups[i] && !!props.rhymes[i] && props.rhymes[i] !== 'none'
+const hintOf = (i: number) => STATUS[props.rhymes[i] ?? 'none'].hint(letterOf(props.groups[i]))
 
 /**
  * The line list scrolls inside the sheet so the page fits one screen. While playing, follow the
@@ -40,7 +57,6 @@ watch(
     })
   },
 )
-
 /** Grow each textarea to its content so long lines wrap instead of scrolling. */
 function fit(ta: HTMLTextAreaElement) {
   ta.style.height = 'auto'
@@ -109,6 +125,15 @@ onBeforeUnmount(() => {
               :class="{ hit: i === activeBar && b - 1 === beat }"
             ></i>
           </div>
+          <span
+            v-if="showRhyme(i)"
+            class="rhyme"
+            :class="[`s-${rhymes[i]}`, `g-${letterOf(groups[i])}`]"
+            :title="hintOf(i)"
+            :aria-label="`Rhyme ${letterOf(groups[i])}: ${hintOf(i)}`"
+          >
+            {{ letterOf(groups[i]) }}<b>{{ STATUS[rhymes[i] ?? 'none'].mark }}</b>
+          </span>
           <span class="flow" :class="flowOf(text).kind">{{ flowOf(text).label }}</span>
         </div>
       </li>
@@ -118,6 +143,9 @@ onBeforeUnmount(() => {
       <span class="flow ok">On flow</span>
       <span class="flow busy">Busy</span>
       <span class="flow crowd">Crowded</span>
+      <span class="rhyme g-A s-perfect">A✓ Perfect</span>
+      <span class="rhyme g-A s-slant">A≈ Slant</span>
+      <span class="rhyme g-A s-miss">A✗ Miss</span>
       <span>syllables per bar, so you know if a line fits before the robot raps it</span>
     </div>
   </div>
@@ -267,7 +295,8 @@ textarea::placeholder {
 .beats-row {
   display: flex;
   align-items: center;
-  gap: 18px;
+  flex-wrap: wrap;
+  gap: 10px 18px;      /* was: gap: 18px */
   padding: 9px 16px 0 8px;
 }
 .dots {
@@ -329,6 +358,59 @@ textarea::placeholder {
 .flow.thin {
   --flow-bg: linear-gradient(168deg, #eef1f8 0 25%, var(--metal) 25% 70%, #9aa3bd 70%);
 }
+.rhyme {
+  flex: none;
+  margin-left: auto;
+  position: relative;
+  isolation: isolate;
+  min-width: 44px;
+  text-align: center;
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  padding: 5px 10px 2px;
+  border-radius: 900px 999px 950px 999px;
+  transform: rotate(-3deg);
+  transition:
+    transform 0.25s var(--spring),
+    opacity 0.2s;
+  --rhyme-bg: var(--cel-yellow);
+}
+.rhyme + .flow { margin-left: 0; }
+.rhyme b { margin-left: 3px; }
+.rhyme::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--rhyme-bg);
+  box-shadow: var(--line-sm);
+  filter: url(#rough);
+}
+
+/* letter colors */
+.rhyme.g-A { --rhyme-bg: var(--cel-pink); color: var(--paper); }
+.rhyme.g-B { --rhyme-bg: var(--cel-yellow); }
+.rhyme.g-C { --rhyme-bg: linear-gradient(168deg, #b6ffd9 0 25%, var(--mint) 25% 70%, #1fd182 70%); }
+.rhyme.g-D { --rhyme-bg: linear-gradient(168deg, #eef1f8 0 25%, var(--metal) 25% 70%, #9aa3bd 70%); }
+
+/* status looks */
+.rhyme.s-blank,
+.rhyme.s-alone { opacity: 0.5; }
+.rhyme.s-perfect { transform: rotate(-3deg) scale(1.1); }
+.rhyme.s-slant { transform: rotate(-3deg) scale(1.05); }
+.rhyme.s-slant b { color: #b8860b; }
+.rhyme.s-miss { animation: rhyme-shake 0.3s; }
+.rhyme.s-miss b { color: #ff2d55; }
+
+@keyframes rhyme-shake {
+  25% { translate: -3px 0; }
+  75% { translate: 3px 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rhyme.s-miss { animation: none; }
+}
 .legend {
   flex: none;
   margin-top: 10px;
@@ -340,6 +422,11 @@ textarea::placeholder {
   font-weight: 500;
 }
 .legend .flow {
+  min-width: 0;
+  margin-left: 0;
+  font-size: 11px;
+}
+.legend .rhyme {
   min-width: 0;
   margin-left: 0;
   font-size: 11px;

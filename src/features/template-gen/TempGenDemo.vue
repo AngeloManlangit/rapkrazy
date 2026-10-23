@@ -1,56 +1,70 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, reactive } from 'vue'
-import { generateTraceryText, assignRhymeScheme, parseSong , type Verdict, compareRhyme, isWord} from './template'
+import {
+  generateTraceryText,
+  assignRhymeScheme,
+  parseSong,
+  compareRhyme,
+  isWord,
+  type Verdict,
+} from './template'
 
 type Status = Verdict | 'pending'
-const RANK: Verdict[] = ['perfect', 'slant', 'none'] 
-const values = reactive<Record<string, string>>({});
-const lines = computed(() => parseSong(outputText.value));
+const RANK: Verdict[] = ['perfect', 'slant', 'none']
+
+const values = reactive<Record<string, string>>({})
+const settled = reactive<Record<string, string>>({})
+const timers = new Map<string, number>() // each blank has its own debounce timer
+
 const outputText = ref<string>('')
 const stanza1 = ref<string>('')
 const stanza2 = ref<string>('')
+const lines = computed(() => parseSong(outputText.value))
 
-const settled = reactive<Record<string, string>>({}) 
-const timers = new Map<string, number>() // Each blank has their own timer for debouncing input
-
-// Helper function to commit the value of a specific input field after a delay
+// Copy the current text of a blank into `settled`, which the rhyme check reads
 function commit(id: string) {
   clearTimeout(timers.get(id))
   settled[id] = values[id] ?? ''
 }
-// Helper function to handle input changes with a debounce to avoid excessive updates
+
+// Debounce: commit only after 350 ms with no typing in this blank
 function onType(id: string) {
   clearTimeout(timers.get(id))
   timers.set(id, window.setTimeout(() => commit(id), 350))
 }
 
-// Generate new text and reset the state of the application
+// Generate a new song and reset all user state
 const handleGenerate = (): void => {
-  stanza1.value = generateTraceryText()
-  stanza1.value = assignRhymeScheme(stanza1.value, 1)
-  stanza2.value = generateTraceryText()
-  stanza2.value = assignRhymeScheme(stanza2.value, 2)
+  stanza1.value = assignRhymeScheme(generateTraceryText(), 1)
+  stanza2.value = assignRhymeScheme(generateTraceryText(), 2)
   outputText.value = `${stanza1.value}\n${stanza2.value}`
-  Object.keys(values).forEach(k => delete values[k]); 
+
+  Object.keys(values).forEach(k => delete values[k])
   Object.keys(settled).forEach(k => delete settled[k])
-  timers.forEach(t => clearTimeout(t)); timers.clear()
+  timers.forEach(t => clearTimeout(t))
+  timers.clear()
 }
 
-// Compute the rhyme status for each blank based on the settled values, these will be used for CSS styling
+// One status per blank id, used for CSS classes
 const rhymeStatus = computed(() => {
-  // group -> ids, from lines
+  // group -> blank ids, built from the parsed lines
   const groups = new Map<string, string[]>()
-  for (const line of lines.value)
-    for (const s of line)
-      if (s.kind === 'blank' && s.group)
-        groups.set(s.group, [...(groups.get(s.group) ?? []), s.id])
+  for (const line of lines.value) {
+    for (const s of line) {
+      // skip "X" groups: those are non-rhyming blanks (name, rival, ...)
+      if (s.kind !== 'blank' || s.group.startsWith('X')) continue
+      const existing = groups.get(s.group)
+      if (existing) existing.push(s.id)
+      else groups.set(s.group, [s.id])
+    }
+  }
 
   const out: Record<string, Status> = {}
   for (const ids of groups.values()) {
     ids.forEach(id => (out[id] = 'pending'))
 
     const ready = ids.filter(id => isWord(settled[id] ?? ''))
-    if (ready.length < 2) continue           // nothing valid to compare against
+    if (ready.length < 2) continue // nothing valid to compare against yet
 
     for (const id of ready) {
       const verdicts = ready
@@ -62,9 +76,7 @@ const rhymeStatus = computed(() => {
   return out
 })
 
-onMounted(() => {
-  handleGenerate()
-})
+onMounted(handleGenerate)
 </script>
 
 <template>
@@ -81,15 +93,17 @@ onMounted(() => {
           <span v-if="segment.kind === 'text'">{{ segment.text }}</span>
           <input
             v-else
-            v-model= "values[segment.id]"
+            v-model="values[segment.id]"
             :placeholder="`[${segment.id}:${segment.group}]`"
-            :class="['blank', segment.type]"
-            :size="Math.max((values[segment.id] ?? '').length, segment.type.length + 2)"
+            :class="['blank', segment.type, rhymeStatus[segment.id]]"
+            :size="Math.max((values[segment.id] ?? '').length, segment.id.length + segment.group.length + 3)"
             @input="onType(segment.id)"
+            @blur="commit(segment.id)"
+            @keydown.enter="commit(segment.id)"
           />
         </template>
       </p>
-  </div>
+    </div>
   </div>
 </template>
 
@@ -123,13 +137,14 @@ onMounted(() => {
   background-color: #f3f4f6;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
+  line-height: 1.8;
 }
 
-.display-box pre {
-  margin: 0;
-  white-space: pre-wrap; 
-  font-family: inherit;
-  font-size: 1.1rem;
-  line-height: 1.6;
+.blank {
+  border: 2px solid #9ca3af;
+  border-radius: 4px;
 }
+.blank.perfect { border-color: #22c55e; } /* green  */
+.blank.slant   { border-color: #eab308; } /* yellow */
+.blank.none    { border-color: #ef4444; } /* red    */
 </style>

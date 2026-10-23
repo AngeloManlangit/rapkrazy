@@ -17,6 +17,7 @@ import { RobotRapper } from '@/features/robot/RobotRapper'
 import LyricSheet from '@/features/writing-board/LyricSheet.vue'
 import WritingTools from '@/features/writing-board/WritingTools.vue'
 import { randomTemplate } from '@/features/writing-board/randomTemplate'
+import { rhymeStatuses} from '@/features/writing-board/rhymeTracker'
 import AiWriterPanel from '@/features/ai-writer/AiWriterPanel.vue'
 import SoundBoard from '@/features/soundboard/SoundBoard.vue'
 import write1 from '@/assets/write/write-1.webp'
@@ -49,6 +50,10 @@ const robot = useTemplateRef<InstanceType<typeof RobotStage>>('robot')
 
 const toastText = ref('')
 const toastShown = ref(false)
+
+const groups = ref<(string | null)[]>(Array(lines.value.length).fill(null))
+const rhymes = computed(() => rhymeStatuses(lines.value, groups.value,))
+
 let toastTimer: ReturnType<typeof setTimeout> | undefined
 function toast(msg: string) {
   toastText.value = msg
@@ -64,7 +69,11 @@ function sized(list: string[], n: number): string[] {
 
 /** One line per bar of the beat (capped so long tracks don't make an endless sheet). */
 watch(beat, (b) => {
-  if (b) lines.value = sized(lines.value, Math.min(b.totalBars, 16))
+  if (b) {
+    const n = Math.min(b.totalBars, 16)
+    lines.value = sized(lines.value, n)
+    groups.value = Array.from({ length: n }, (_, i) => groups.value[i] ?? null) //matches with padded lines
+  }
 })
 
 const activeBar = computed(() => (isPlaying.value ? position.value.bar : -1))
@@ -121,6 +130,7 @@ const aiWriter = useTemplateRef<InstanceType<typeof AiWriterPanel>>('aiWriter')
 /** Put the AI bars on the lyric sheet, one per bar. */
 function onAiLyrics(payload: { title: string; lines: string[] }) {
   lines.value = sized(payload.lines, lines.value.length)
+  groups.value = groups.value.map(() => null)
   robot.value?.react('happy', 1200)
   toast(`"${payload.title}" added to the sheet`)
 }
@@ -128,7 +138,9 @@ function onAiLyrics(payload: { title: string; lines: string[] }) {
 function loadTemplate() {
   try {
     const n = lines.value.length
-    lines.value = sized(randomTemplate(), n)
+    const t = randomTemplate()
+    lines.value = sized(t.lines, n)
+    groups.value = Array.from({ length: n }, (_, i) => t.groups[i] ?? null) //the padded lines
     robot.value?.react('happy', 1200)
     toast('Template loaded: replace the [blanks]')
   } catch (e) {
@@ -171,6 +183,8 @@ onBeforeUnmount(() => {
         <section class="area-board" aria-label="Lyric sheet">
           <LyricSheet
             v-model:lines="lines"
+            :rhymes="rhymes"
+            :groups="groups"
             :active-bar="activeBar"
             :beat="position.beat"
             :beats-per-bar="beat?.beatsPerBar ?? 4"

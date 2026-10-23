@@ -1,0 +1,149 @@
+{
+  "theme": "rapculture",
+
+  "shapes": {
+    "craft": [
+      
+      "#open# #pen#, every verse a {{noun:end}}",
+      "#open# #booth#, turning pain to {{noun:end}}",
+      "#open# #pen#, chasing a {{noun:end}}",
+      "#pen#, I put in the {{noun:end}}",
+      "#booth#, I'm on a {{noun:end}}",
+      "#open# #booth#, never gonna {{verb:end}}"
+    ],
+    "cypher": [
+      "#circle#, everybody wants the {{noun:end}}",
+      "#open# #circle#, I'm here to {{verb:end}}",
+      "#circle#, now it's my {{noun:end}}",
+      "#open# #circle#, watch me {{verb:end}}",
+      "#circle#, can't nobody {{verb:end}}",
+      "#open# #circle#, feel the {{noun:end}}"
+    ],
+    "legacy": [
+      "#roots#, now I carry the {{noun:end}}",
+      "#roots#, that's how I learned to {{verb:end}}",
+      "#open# #roots#, that's my {{noun:end}}",
+      "#roots#, I'll never {{verb:end}}",
+      "#open# #roots#, pass on the {{noun:end}}",
+      "#roots#, built this {{noun:end}}"
+    ],
+    "punch": [
+      "#flexline# and my flow is {{adjective:end}}",
+      "Check the mic, my bars are {{adjective:end}}",
+      "#flexline#, and it's {{adjective:end}}",
+      "#open# #flexline#, stay {{adjective:end}}",
+      "#flexline#, I feel {{adjective:end}}",
+      "Check the beat, my timing's {{adjective:end}}"
+    ],
+    "battle": [
+      "#battleline#, you can't {{verb:end}}",
+      "#open# #battleline#, take the {{noun:end}}",
+      "#battleline#, I'm the {{noun:end}}",
+      "#open# #battleline#, so {{adjective:end}}",
+      "#battleline#, watch them {{verb:end}}"
+    ],
+    "performance": [
+      "#stage#, hear the {{noun:end}}",
+      "#open# #stage#, feel the {{noun:end}}",
+      "#stage#, I came to {{verb:end}}",
+      "#open# #stage#, everyone's {{adjective:end}}",
+      "#stage#, now watch me {{verb:end}}"
+    ],
+    "wordplay": [
+      "#twist#, that's my {{noun:end}}",
+      "#open# #twist#, so {{adjective:end}}",
+      "#twist#, now you {{verb:end}}",
+      "#open# #twist#, that's a {{noun:end}}",
+      "#twist#, feeling {{adjective:end}}"
+    ]
+  },
+
+  "pools": {
+    "open": [
+      { "text": "I speak the truth,", "syllables": 4 },
+      { "text": "Your's truly,", "syllables": 3 },
+      { "text": "Atten-hut,", "syllables": 4 },
+      { "text": "Crowd goes quiet,", "syllables": 4 },
+      { "text": "Mic check,", "syllables": 2 },
+      { "text": "All hearts on me", "syllables": 4 },
+      { "text": "Spotlights on,", "syllables": 3 },
+      { "text": "Start the track", "syllables": 3 },
+      { "text": "Hear that bass,", "syllables": 3 },
+      { "text": "Four bars deep,", "syllables": 3 }
+    ],
+    "pen": [
+      { "text": "ink still wet", "syllables": 3 },
+      { "text": "notebook scars", "syllables": 3 },
+      { "text": "scribbling late", "syllables": 3 },
+      { "text": "writing till dawn", "syllables": 4 },
+      { "text": "bars in my notes", "syllables": 4 },
+      { "text": "pages of rhymes", "syllables": 4 },
+      { "text": "pencil worn down", "syllables": 4 },
+      { "text": "napkin lines", "syllables": 3 },
+      { "text": "ink on the page", "syllables": 4 }
+    ],
+    "booth": [
+      { "text": "hot mic, tight booth", "syllables": 4 },
+      { "text": "one take only", "syllables": 4 },
+      { "text": "bass shakes the walls", "syllables": 4 },
+      { "text": "headphones on tight", "syllables": 4 },
+      { "text": "vocals, one take", "syllables": 4 },
+      { "text": "red light, I'm live", "syllables": 4 },
+      { "text": "tape is rolling", "syllables": 4 }
+    ],
+    "circle": [
+      { "text": "Corner cypher", "syllables": 4 },
+      { "text": "Circle's tight", "syllables": 3 },
+      { "text": "Beatbox rhythm", "syllables": 4 },
+      { "text": "Cold freestyle", "syllables": 3 },
+      { "text": "Crowd in a ring", "syllables": 4 },
+      { "text": "Pass the mic round", "syllables": 4 },
+      { "text": "Hands up, beat drops", "syllables": 4 },
+      { "text": "All eyes on me", "syllables": 4 }
+    ],
+    "roots": [
+      { "text": "Boom bap blood", "syllables": 3 },
+      { "text": "Cassette tapes", "syllables": 3 },
+      { "text": "Learned from the greats", "syllables": 4 },
+      { "text": "Turntables spin", "syllables": 4 },
+      { "text": "Old school veins", "syllables": 3 },
+      { "text": "Samples from crates", "syllables": 4 },
+      { "text": "Legends taught me", "syllables": 4 },
+      { "text": "Vinyl crackle", "syllables": 4 }
+    ],
+    "flexline": [
+      { "text": "Rhyme on the spot", "syllables": 4 },
+      { "text": "Flip each phrase", "syllables": 3 },
+      { "text": "I stay on beat", "syllables": 4 },
+      { "text": "Metaphor flow", "syllables": 4 },
+      { "text": "I switch the flow", "syllables": 4 },
+      { "text": "Lines hit hard", "syllables": 3 },
+      { "text": "Bars never miss", "syllables": 4 },
+      { "text": "Rhythm in bones", "syllables": 4 }
+    ],
+    "battleline": [
+      { "text": "Round one, mine", "syllables": 3 },
+      { "text": "Crowd roars my line", "syllables": 4 },
+      { "text": "Pen game's tight", "syllables": 4 },
+      { "text": "Wordplay rolling", "syllables": 4 },
+      { "text": "Judges feel it", "syllables": 4 },
+      { "text": "Words are weapons", "syllables": 4 }
+    ],
+    "stage": [
+      { "text": "Lights up on stage", "syllables": 4 },
+      { "text": "Mic stand grip", "syllables": 3 },
+      { "text": "Speakers shake floor", "syllables": 4 },
+      { "text": "Smoke and spotlights", "syllables": 4 },
+      { "text": "Front row knows", "syllables": 3 },
+      { "text": "Encore, one more", "syllables": 4 }
+    ],
+    "twist": [
+      { "text": "Punchline hits twice", "syllables": 4 },
+      { "text": "Puns on the line", "syllables": 4 },
+      { "text": "Internal rhymes", "syllables": 4 },
+      { "text": "Double meaning", "syllables": 4 },
+      { "text": "Flip each phrase", "syllables": 3 },
+      { "text": "Syllable flow", "syllables": 4 }
+    ]
+  }
+}

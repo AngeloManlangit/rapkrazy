@@ -1,0 +1,101 @@
+{
+  "theme": "comeup",
+
+  "shapes": {
+    "story": [
+      "#then# #struggle#, never knew the {{noun:end}}",
+      "#then# #struggle#, dreaming of {{noun:end}}",
+      "#then# #struggle#, now I {{verb:end}}",
+      "#then# #struggle#, hoping for {{noun:end}}",
+      "#struggle#, but I kept my {{noun:end}}"
+    ],
+    "grind": [
+      "#hustle#, every day I {{verb:end}}",
+      "#hustle#, now they know my {{noun:end}}",
+      "#hustle#, I never {{verb:end}}",
+      "#hustle#, built my own {{noun:end}}"
+    ],
+    "flip": [
+      "Now I #win#, started from the {{noun:end}}",
+      "From #struggle# to #win#, that's my {{noun:end}}",
+      "From #struggle# to #win#, I'm {{adjective:end}}",
+      "Now I #win#, they all know my {{noun:end}}"
+    ],
+    "reflection": [
+      "#then# I was lost, now I'm {{adjective:end}}",
+      "Look how far I came, still feel {{adjective:end}}",
+      "#then# #struggle#, now I feel {{adjective:end}}",
+      "#hustle#, and it feels {{adjective:end}}"
+    ]
+  },
+
+  "pools": {
+    "then": [
+      { "text": "Back in the day", "syllables": 4 },
+      { "text": "Way back then", "syllables": 3 },
+      { "text": "Used to be", "syllables": 3 },
+      { "text": "Years ago", "syllables": 3 },
+      { "text": "Long ago", "syllables": 3 },
+      { "text": "Day zero", "syllables": 3 },
+      { "text": "Before the fame", "syllables": 4 },
+      { "text": "Not so long back", "syllables": 4 },
+      { "text": "Way back when", "syllables": 3 },
+      { "text": "Once upon a time", "syllables": 5 },
+      { "text": "Back in the dark", "syllables": 4 },
+      { "text": "Two years back", "syllables": 3 }
+    ],
+    "struggle": [
+      { "text": "sleeping on a couch", "syllables": 5 },
+      { "text": "counting every dime", "syllables": 5 },
+      { "text": "walking in the rain", "syllables": 5 },
+      { "text": "writing in the dark", "syllables": 5 },
+      { "text": "begging for a spot", "syllables": 5 },
+      { "text": "sharing one small room", "syllables": 5 },
+      { "text": "holes in both my shoes", "syllables": 5 },
+      { "text": "last bus home at night", "syllables": 5 },
+      { "text": "rent due, bank is low", "syllables": 5 },
+      { "text": "nobody picked up", "syllables": 5 },
+      { "text": "empty fridge again", "syllables": 5 },
+      { "text": "skipping every meal", "syllables": 5 },
+      { "text": "ramen every night", "syllables": 5 },
+      { "text": "broke and out of luck", "syllables": 5 },
+      { "text": "dreams on layaway", "syllables": 5 },
+      { "text": "doors slammed in my face", "syllables": 5 },
+      { "text": "busted car, no gas", "syllables": 5 }
+    ],
+    "hustle": [
+      { "text": "Up before the sun", "syllables": 5 },
+      { "text": "Notebook in my hand", "syllables": 5 },
+      { "text": "Grinding through the night", "syllables": 5 },
+      { "text": "Practice on repeat", "syllables": 5 },
+      { "text": "Chasing every shot", "syllables": 5 },
+      { "text": "Sleep can wait for me", "syllables": 5 },
+      { "text": "Demo tapes in hand", "syllables": 5 },
+      { "text": "Open mic each week", "syllables": 5 },
+      { "text": "Early bus, late night", "syllables": 5 },
+      { "text": "Knocking on each door", "syllables": 5 },
+      { "text": "Double shift, then write", "syllables": 5 },
+      { "text": "Writing after work", "syllables": 5 },
+      { "text": "Hustle never stops", "syllables": 5 },
+      { "text": "Stacking every cent", "syllables": 5 }
+    ],
+    "win": [
+      { "text": "run the whole town", "syllables": 4 },
+      { "text": "own the stage", "syllables": 3 },
+      { "text": "pack the room", "syllables": 3 },
+      { "text": "hold the crown", "syllables": 3 },
+      { "text": "fill the hall", "syllables": 3 },
+      { "text": "sign the deal", "syllables": 3 },
+      { "text": "take the throne", "syllables": 3 },
+      { "text": "light up the sky", "syllables": 4 },
+      { "text": "lead the charts", "syllables": 3 },
+      { "text": "ring the bell", "syllables": 3 },
+      { "text": "sell it out", "syllables": 3 },
+      { "text": "buy the block", "syllables": 3 },
+      { "text": "buy mama a house", "syllables": 5 },
+      { "text": "touch the sky", "syllables": 3 },
+      { "text": "get paid right", "syllables": 3 },
+      { "text": "run the whole game", "syllables": 4 }
+    ]
+  }
+}
