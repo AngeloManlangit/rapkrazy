@@ -62,17 +62,21 @@ If you change `.env` later, stop the server (Ctrl+C) and start it again. It only
 - The AI ghostwriter asks for a noun, a verb, an adjective and a topic, then writes bars for you. If you see "the AI is resting", it used the backup lyrics because something couldn't connect.
 
 **Settings**
-- Family friendly is the default. Explicit lets the AI cuss and trash-talk. It still won't write slurs.
+- Family-friendly is the default. Ghetto mode lets the AI cuss and trash-talk. It still won't write slurs.
 - This only changes the AI writer. It doesn't affect Collab.
 
-**Collab** (play with friends)
-1. One person picks a nickname and clicks **Create lobby**. They get a 6-letter code.
-2. Everyone else puts in a nickname, types the code, and clicks **Join**. Max 5 players.
-3. The host picks a beat, how many seconds each line gets, and the number of rounds, then hits **Start game**.
-4. Each turn, one person writes one line. You only see the line right before yours.
-5. At the end, everyone sees the whole song with names, and the robot raps it.
+**Collab** (play with a friend). For now Collab is Rhyme Duel only. The line-by-line writing mode is hidden.
 
 Tip: you can test alone by opening a normal window and a private window. They count as different players.
+
+**Rhyme Duel** (2 players, uses your microphone)
+1. One person picks a nickname and clicks **Create lobby**. They get a 6-letter code, pick a beat, and choose how many words each player writes (2 to 8). One friend joins with the code.
+2. Each of you has 45 seconds to type ending words for the other person.
+3. Once you both lock in, there is a 10 second countdown and then the rap starts by itself. You can skip the wait by clicking **Start rapping**.
+4. Each of you raps one bar per word over the beat on the mic. A counter shows the beats, and the last beat of each bar is where your rhyme has to land.
+5. The app listens, checks the rhymes and the timing, blows the air horn, and shows who won. Same score means a tie.
+
+Please use headphones for this one. Without them the mic picks up the beat and the timing check gets confused. The browser will ask to use your mic the first time, so click Allow.
 
 ## When something goes wrong
 
@@ -83,6 +87,8 @@ Tip: you can test alone by opening a normal window and a private window. They co
 **Page is blank or shows an import error about `@fontsource`.** Run `npm install` again.
 
 **"The AI is resting" every time.** Check the browser console (F12) for a line starting with "AI Writer fell back". It usually means the keys in `.env` are wrong or the server is down.
+
+**The mic is blocked.** Click the lock icon in the address bar and allow the microphone for this site, then try again.
 
 **No sound.** Browsers block audio until you click something. Click the play button or the robot first.
 

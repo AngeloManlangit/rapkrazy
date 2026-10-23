@@ -15,6 +15,9 @@ import LobbyView from '@/features/multiplayer/LobbyView.vue'
 import WaitingRoom from '@/features/multiplayer/WaitingRoom.vue'
 import TurnView from '@/features/multiplayer/TurnView.vue'
 import RevealView from '@/features/multiplayer/RevealView.vue'
+import WordsView from '@/features/multiplayer/duel/WordsView.vue'
+import RapView from '@/features/multiplayer/duel/RapView.vue'
+import DuelResultsView from '@/features/multiplayer/duel/DuelResultsView.vue'
 import { useRoom } from '@/features/multiplayer/useRoom'
 import { hasBackend } from '@/features/multiplayer/roomApi'
 import collab1 from '@/assets/write/collab-1.webp'
@@ -90,7 +93,12 @@ onMounted(async () => {
             :busy="game.busy.value"
             @pick-beat="game.setBeat"
             @settings="game.setSettings"
-            @start="game.start(chosen?.totalBars ?? 16)"
+            @set-mode="game.setMode"
+            @start="
+              game.room.value.mode === 'duel'
+                ? game.startDuel(chosen?.totalBars ?? 0)
+                : game.start(chosen?.totalBars ?? 16)
+            "
             @leave="game.leave"
           />
 
@@ -113,6 +121,37 @@ onMounted(async () => {
             :seconds-left="game.secondsLeft.value"
             :busy="game.busy.value"
             @submit="game.submit"
+          />
+
+          <WordsView
+            v-else-if="game.phase.value === 'words'"
+            :opponent-name="game.opponent.value?.name ?? 'your opponent'"
+            :line-count="game.room.value.lineCount"
+            :seconds-left="game.secondsLeft.value"
+            :done="game.myWordsDone.value"
+            :busy="game.busy.value"
+            @submit="game.submitMyWords"
+          />
+
+          <RapView
+            v-else-if="game.phase.value === 'rap'"
+            :me="game.me.value"
+            :opponent-name="game.opponent.value?.name ?? 'your opponent'"
+            :targets="game.myTargets.value"
+            :seconds-left="game.secondsLeft.value"
+            :done="!!game.myResult.value"
+            :save="game.submitMyResult"
+          />
+
+          <DuelResultsView
+            v-else-if="game.phase.value === 'results'"
+            :players="game.players.value"
+            :results="game.results.value"
+            :me="game.me.value"
+            :is-host="game.isHost.value"
+            :busy="game.busy.value"
+            @again="game.playAgain"
+            @leave="game.leave"
           />
 
           <RevealView

@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { barToSeconds, useBeatClock } from '@/shared/audio'
 import type { RoomPlayer } from '@/shared/types'
+import CountdownBar from './CountdownBar.vue'
 import PlayerSeat from './PlayerSeat.vue'
 
 // The writing phase: you only see the line right before yours. Everyone else waits and watches.
@@ -74,8 +75,6 @@ onBeforeUnmount(() => {
 const canSend = computed(
   () => props.isMyTurn && !props.submitted && !props.busy && !!text.value.trim(),
 )
-const timePct = computed(() => Math.min(100, (props.secondsLeft / props.turnSeconds) * 100))
-const hurry = computed(() => props.secondsLeft <= 10)
 
 function send() {
   if (canSend.value) emit('submit', text.value)
@@ -97,13 +96,11 @@ function send() {
     </ul>
 
     <section class="pad panel ink halftone" aria-live="polite">
-      <header class="top">
-        <span class="tag">Line {{ turnIndex + 1 }} of {{ totalTurns }}</span>
-        <span class="clock toon" :class="{ hurry }">{{ secondsLeft }}s</span>
-      </header>
-      <div class="timer ink" aria-hidden="true">
-        <i :class="{ hurry }" :style="{ width: `${timePct}%` }"></i>
-      </div>
+      <CountdownBar
+        :seconds="secondsLeft"
+        :total="turnSeconds"
+        :label="`Line ${turnIndex + 1} of ${totalTurns}`"
+      />
 
       <div class="prev">
         <span class="label">{{
@@ -165,34 +162,6 @@ function send() {
   display: grid;
   gap: 18px;
   padding: 24px;
-}
-.top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.clock {
-  font-size: 30px;
-  color: var(--paper);
-}
-.clock.hurry {
-  color: var(--pink);
-}
-.timer {
-  --fill: var(--cel-paper);
-  height: 14px;
-  border-radius: 999px;
-  overflow: hidden;
-}
-.timer i {
-  display: block;
-  height: 100%;
-  background: var(--cyan);
-  transition: width 0.5s linear;
-}
-.timer i.hurry {
-  background: var(--pink);
 }
 .prev {
   display: grid;

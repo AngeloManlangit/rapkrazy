@@ -77,17 +77,23 @@ export interface Verse {
 }
 
 /** Collab lobby state, one row per room in Supabase. */
-export type RoomStatus = 'lobby' | 'writing' | 'reveal'
+export type RoomStatus = 'lobby' | 'writing' | 'reveal' | 'words' | 'rap' | 'results'
+
+/** write: players add lines one after another. duel: Rhyme Duel for 2 players. */
+export type RoomMode = 'write' | 'duel'
 
 export interface Room {
   code: string
   hostId: string
   beatId: string | null
+  mode: RoomMode
   status: RoomStatus
   turnIndex: number
   totalTurns: number
   turnSeconds: number
   rounds: number
+  /** Rhyme Duel: ending words per player, and bars each player raps. */
+  lineCount: number
   /** Epoch ms when the current turn ends, null outside the writing phase. */
   turnDeadline: number | null
 }
@@ -95,6 +101,32 @@ export interface Room {
 /** A seated player. `seat` decides the writing order. */
 export interface RoomPlayer extends Player {
   seat: number
+}
+
+/** One of the 4 ending words a player wrote for their opponent (position 0-3). */
+export interface DuelWord {
+  playerId: string
+  position: number
+  word: string
+}
+
+/** How one rapped line was judged. */
+export interface DuelLine {
+  /** The word the rapper had to rhyme with. */
+  target: string
+  /** The last word the judge heard. Empty if the line was missed. */
+  heard: string
+  rhymes: boolean
+  /** The last syllable landed around beat 4 of the bar. */
+  onBeat: boolean
+  /** 1 for rhyme on the beat, 0.5 for rhyme off the beat, 0 otherwise. */
+  points: number
+}
+
+export interface DuelResult {
+  playerId: string
+  lines: DuelLine[]
+  score: number
 }
 
 /** One line written in a turn. */

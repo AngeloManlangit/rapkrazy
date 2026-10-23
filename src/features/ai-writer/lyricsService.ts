@@ -20,7 +20,7 @@ export interface WriterContext {
 */
 const FORCE_CANNED = import.meta.env.VITE_AI_WRITER_MOCK === 'true'
 const DEV_GEMINI_KEY = import.meta.env.DEV ? import.meta.env.VITE_GEMINI_API_KEY : undefined
-const DEV_GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL ?? 'gemini-3.5-flash'
+const DEV_GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL ?? 'gemini-3.5-flash-lite'
 
 export async function requestLyrics(inputs: WriterInputs, ctx: WriterContext = {}): Promise<GeneratedLyrics> {
     const bars = ctx.bars ?? 8

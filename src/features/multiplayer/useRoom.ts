@@ -1,7 +1,9 @@
 import { computed, onBeforeUnmount, ref } from 'vue'
-import type { Room, RoomLine, RoomPlayer } from '@/shared/types'
+import type { DuelResult, DuelWord, Room, RoomLine, RoomMode, RoomPlayer } from '@/shared/types'
+import { FALLBACK_WORDS, PRE_RAP_SECONDS, WORDS_SECONDS } from './duel/constants'
 import {
   MAX_PLAYERS,
+  clearDuel,
   clearLines,
   createRoom,
   ensureUser,
@@ -9,6 +11,8 @@ import {
   joinRoom,
   leaveRoom,
   submitLine,
+  submitResult,
+  submitWords,
   updateRoom,
   watchRoom,
   type RoomPatch,
@@ -37,6 +41,8 @@ export function useRoom() {
   const room = ref<Room | null>(null)
   const players = ref<RoomPlayer[]>([])
   const lines = ref<RoomLine[]>([])
+  const words = ref<DuelWord[]>([])
+  const results = ref<DuelResult[]>([])
   const error = ref('')
   const busy = ref(false)
   const now = ref(Date.now())
@@ -49,13 +55,12 @@ export function useRoom() {
   /** Turn the referee already acted on, so one change does not fire twice. */
   let handled = ''
 
-  const phase = computed<'home' | 'lobby' | 'writing' | 'reveal'>(
-    () => room.value?.status ?? 'home',
-  )
+  const phase = computed<'home' | Room['status']>(() => room.value?.status ?? 'home')
   const isHost = computed(() => !!room.value && room.value.hostId === me.value)
   const seated = computed(() => players.value.find((p) => p.id === me.value))
   const nameOf = (id: string) => players.value.find((p) => p.id === id)?.name ?? 'Someone'
-  const seatsFull = computed(() => players.value.length >= MAX_PLAYERS)
+  const maxPlayers = computed(() => (room.value?.mode === 'duel' ? 2 : MAX_PLAYERS))
+  const seatsFull = computed(() => players.value.length >= maxPlayers.value)
 
   const writer = computed(() => {
     const r = room.value
@@ -72,6 +77,18 @@ export function useRoom() {
   const alreadyWrote = computed(
     () => !!room.value && lines.value.some((l) => l.turnIndex === room.value!.turnIndex),
   )
+
+  /* Rhyme Duel: each player raps the 4 words the other one wrote. */
+  const opponent = computed(() => players.value.find((p) => p.id !== me.value) ?? null)
+  const wordsOf = (id: string) =>
+    words.value
+      .filter((w) => w.playerId === id)
+      .sort((a, b) => a.position - b.position)
+      .map((w) => w.word)
+  const myWordsDone = computed(() => wordsOf(me.value).length >= 4)
+  const myTargets = computed(() => (opponent.value ? wordsOf(opponent.value.id) : []))
+  const myResult = computed(() => results.value.find((r) => r.playerId === me.value) ?? null)
+
   const secondsLeft = computed(() => {
     const d = room.value?.turnDeadline
     return d ? Math.max(0, Math.ceil((d - now.value) / 1000)) : 0
@@ -93,6 +110,8 @@ export function useRoom() {
       room.value = snap.room
       players.value = snap.players
       lines.value = snap.lines
+      words.value = snap.words
+      results.value = snap.results
       void referee()
     } catch (e) {
       error.value = (e as Error).message
@@ -110,6 +129,7 @@ export function useRoom() {
     const r = room.value
     if (!r) return
     if (!isHost.value) return handoff()
+    if (r.mode === 'duel') return duelReferee(r)
     if (r.status !== 'writing') return
     const key = `${r.code}:${r.turnIndex}:${alreadyWrote.value}`
     if (key === handled) return
@@ -127,6 +147,47 @@ export function useRoom() {
         const text = FILLERS[r.turnIndex % FILLERS.length]!
         await submitLine(r.code, { turnIndex: r.turnIndex, playerId: writer.value.id, text })
       }
+    } catch (e) {
+      handled = ''
+      error.value = (e as Error).message
+    }
+  }
+
+  /** Host-only, Rhyme Duel: move on once both players have handed in their words, then their raps. */
+  async function duelReferee(r: Room) {
+    const need = players.value.length * r.lineCount
+    let patch: RoomPatch | null = null
+    let key = `${r.code}:${r.status}`
+
+    if (r.status === 'words') {
+      if (players.value.length === 2 && words.value.length >= need) {
+        // Both locked in: a short countdown, then the rap starts on both screens.
+        patch = { status: 'rap', turnDeadline: Date.now() + PRE_RAP_SECONDS * 1000 }
+      } else if (r.turnDeadline && Date.now() > r.turnDeadline + GRACE_MS) {
+        // Time is up. Fill in for anyone who has not handed in their words.
+        key += ':fill'
+        if (key === handled) return
+        handled = key
+        try {
+          for (const p of players.value) {
+            if (wordsOf(p.id).length < r.lineCount) {
+              await submitWords(r.code, p.id, FALLBACK_WORDS.slice(0, r.lineCount))
+            }
+          }
+        } catch (e) {
+          handled = ''
+          error.value = (e as Error).message
+        }
+        return
+      }
+    }
+    if (r.status === 'rap' && results.value.length >= players.value.length) {
+      patch = { status: 'results', turnDeadline: null }
+    }
+    if (!patch || key === handled) return
+    handled = key
+    try {
+      await updateRoom(r.code, patch)
     } catch (e) {
       handled = ''
       error.value = (e as Error).message
@@ -173,6 +234,8 @@ export function useRoom() {
     room.value = null
     players.value = []
     lines.value = []
+    words.value = []
+    results.value = []
     handled = ''
     try {
       sessionStorage.removeItem(SAVED_CODE)
@@ -196,7 +259,10 @@ export function useRoom() {
   const host = (name: string) =>
     run(async () => {
       me.value = await ensureUser()
-      await enter(await createRoom(name))
+      const c = await createRoom(name)
+      // Rhyme Duel is the only mode for now (Write together is hidden). New rooms start as 'write' in the database.
+      await updateRoom(c, { mode: 'duel' })
+      await enter(c)
     })
 
   const join = (c: string, name: string) =>
@@ -228,7 +294,7 @@ export function useRoom() {
     })
 
   const setBeat = (beatId: string) => run(() => updateRoom(code.value, { beatId }))
-  const setSettings = (patch: { turnSeconds?: number; rounds?: number }) =>
+  const setSettings = (patch: { turnSeconds?: number; rounds?: number; lineCount?: number }) =>
     run(() => updateRoom(code.value, patch))
 
   /** `beatBars` caps the song length so every line lands on a bar of the chosen beat. */
@@ -247,6 +313,39 @@ export function useRoom() {
       })
     })
 
+  const setMode = (mode: RoomMode) => run(() => updateRoom(code.value, { mode }))
+
+  /** Rhyme Duel needs exactly 2 players and a beat with room for a count-in plus 4 bars. */
+  const startDuel = (beatBars: number) =>
+    run(async () => {
+      const r = room.value
+      if (!r || !r.beatId || players.value.length !== 2) return
+      if (beatBars < r.lineCount + 1) {
+        throw new Error(
+          `That beat is too short for ${r.lineCount} lines. Pick a longer beat or fewer lines.`,
+        )
+      }
+      await clearDuel(r.code)
+      handled = ''
+      await updateRoom(r.code, {
+        status: 'words',
+        turnDeadline: Date.now() + WORDS_SECONDS * 1000,
+      })
+    })
+
+  const submitMyWords = (list: string[]) =>
+    run(async () => {
+      if (!code.value || list.length !== (room.value?.lineCount ?? 4)) return
+      await submitWords(code.value, me.value, list)
+      await refresh()
+    })
+
+  /** Not wrapped in run(): the rap screen shows its own busy and error states. */
+  async function submitMyResult(result: DuelResult) {
+    await submitResult(code.value, result)
+    await refresh()
+  }
+
   const submit = (text: string) =>
     run(async () => {
       const r = room.value
@@ -259,6 +358,7 @@ export function useRoom() {
   const playAgain = () =>
     run(async () => {
       await clearLines(code.value)
+      await clearDuel(code.value)
       handled = ''
       await updateRoom(code.value, { status: 'lobby', turnIndex: 0, turnDeadline: null })
     })
@@ -286,6 +386,13 @@ export function useRoom() {
     isHost,
     seated,
     seatsFull,
+    maxPlayers,
+    words,
+    results,
+    opponent,
+    myWordsDone,
+    myTargets,
+    myResult,
     writer,
     isMyTurn,
     previousLine,
@@ -298,7 +405,11 @@ export function useRoom() {
     leave,
     setBeat,
     setSettings,
+    setMode,
     start,
+    startDuel,
+    submitMyWords,
+    submitMyResult,
     submit,
     playAgain,
   }
