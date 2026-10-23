@@ -8,6 +8,8 @@ defineProps<{
   you?: boolean
   /** Whose turn it is while writing. */
   active?: boolean
+  /** Writes after the current turn. */
+  next?: boolean
 }>()
 </script>
 
@@ -15,7 +17,9 @@ defineProps<{
   <li class="seat" :class="[`c${seat % 5}`, { empty: !name, active }]">
     <template v-if="name">
       <span class="name">{{ name }}</span>
-      <span v-if="host" class="badge">Host</span>
+      <span v-if="active" class="badge now">Writing</span>
+      <span v-else-if="next" class="badge up">Next</span>
+      <span v-else-if="host" class="badge">Host</span>
       <span v-else-if="you" class="badge">You</span>
     </template>
     <span v-else class="name">Waiting</span>
@@ -129,5 +133,18 @@ defineProps<{
   color: var(--yellow);
   padding: 3px 8px 1px;
   border-radius: 6px 9px 5px 10px;
+}
+.badge.now {
+  color: var(--pink);
+  animation: badge-bob 0.8s ease-in-out infinite alternate;
+}
+.badge.up {
+  color: var(--mint);
+}
+@keyframes badge-bob {
+  to {
+    translate: 0 -3px;
+    rotate: -6deg;
+  }
 }
 </style>

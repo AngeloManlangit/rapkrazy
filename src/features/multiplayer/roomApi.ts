@@ -150,10 +150,32 @@ export async function clearLines(code: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
-/** Live updates for one room. Calls `onChange` for any change; the caller refetches. */
-export function watchRoom(code: string, onChange: () => void): () => void {
+export interface RoomWatchOptions {
+  /** Called with every database change in the room; the caller refetches. */
+  onChange: () => void
+  /** Our player id: announced over Realtime presence so others can tell we are still here. */
+  me: string
+  /** Who is connected right now (player ids), on every presence change. */
+  onPresence: (online: string[]) => void
+  /** Small messages that don't need saving, like reveal votes. */
+  onMessage: (event: string, payload: Record<string, unknown>) => void
+}
+
+export interface RoomChannel {
+  close: () => void
+  /** Send a broadcast to everyone else in the room (not echoed back to us). */
+  send: (event: string, payload: Record<string, unknown>) => void
+}
+
+/** Live updates, presence and broadcasts for one room. */
+export function watchRoom(code: string, opts: RoomWatchOptions): RoomChannel {
+  const { onChange } = opts
   const channel = db()
-    .channel(`room:${code}`)
+    .channel(`room:${code}`, { config: { presence: { key: opts.me } } })
+    .on('presence', { event: 'sync' }, () => opts.onPresence(Object.keys(channel.presenceState())))
+    .on('broadcast', { event: '*' }, (msg) =>
+      opts.onMessage(String(msg.event), (msg.payload ?? {}) as Record<string, unknown>),
+    )
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'rooms', filter: `code=eq.${code}` },
@@ -169,8 +191,11 @@ export function watchRoom(code: string, onChange: () => void): () => void {
       { event: '*', schema: 'public', table: 'room_lines', filter: `room_code=eq.${code}` },
       onChange,
     )
-    .subscribe()
-  return () => {
-    void db().removeChannel(channel)
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') void channel.track({ since: Date.now() })
+    })
+  return {
+    close: () => void db().removeChannel(channel),
+    send: (event, payload) => void channel.send({ type: 'broadcast', event, payload }),
   }
 }

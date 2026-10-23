@@ -1,4 +1,4 @@
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import type { Room, RoomLine, RoomPlayer } from '@/shared/types'
 import {
   MAX_PLAYERS,
@@ -11,6 +11,7 @@ import {
   submitLine,
   updateRoom,
   watchRoom,
+  type RoomChannel,
   type RoomPatch,
 } from './roomApi'
 
@@ -26,6 +27,8 @@ const FILLERS = [
   '(silence, but make it cool)',
   '(the robot hums along instead)',
 ]
+/** A player missing from presence this long is treated as gone; the referee skips their turn. */
+const ABSENT_MS = 4000
 
 /**
  * Collab game state for one browser. The host's browser is the referee: it moves turns on, fills in
@@ -41,7 +44,13 @@ export function useRoom() {
   const busy = ref(false)
   const now = ref(Date.now())
 
-  let unwatch: (() => void) | null = null
+  /** Players connected right now (Realtime presence); null until the first presence sync. */
+  const online = ref<Set<string> | null>(null)
+  /** Reveal 🔥 votes: voter id -> line index. Sent as broadcasts, not saved. */
+  const votes = ref<Record<string, number>>({})
+
+  let channel: RoomChannel | null = null
+  let watchedAt = 0
   let poll: ReturnType<typeof setInterval> | undefined
   let tick: ReturnType<typeof setInterval> | undefined
   let refreshing = false
@@ -57,12 +66,26 @@ export function useRoom() {
   const nameOf = (id: string) => players.value.find((p) => p.id === id)?.name ?? 'Someone'
   const seatsFull = computed(() => players.value.length >= MAX_PLAYERS)
 
-  const writer = computed(() => {
+  /*
+   * Turn order is the seat order, and seats don't change during a game: nobody is removed from the
+   * room mid-game (see onBeforeUnmount), so turns can't shift onto the wrong player. Someone who
+   * leaves keeps their seat and the referee skips their turns.
+   */
+  const writerAt = (turn: number) => {
     const r = room.value
-    if (!r || r.status !== 'writing' || !players.value.length) return null
-    return players.value[r.turnIndex % players.value.length] ?? null
-  })
+    if (!r || r.status !== 'writing' || !players.value.length || turn >= r.totalTurns) return null
+    return players.value[turn % players.value.length] ?? null
+  }
+  const writer = computed(() => writerAt(room.value?.turnIndex ?? 0))
+  /** Who writes after the current turn, for the "next up" badge. Null on the last turn. */
+  const nextWriter = computed(() => writerAt((room.value?.turnIndex ?? 0) + 1))
   const isMyTurn = computed(() => writer.value?.id === me.value)
+
+  /** False only once presence has had time to sync and the player isn't connected. */
+  function isPresent(id: string) {
+    if (!online.value || Date.now() - watchedAt < ABSENT_MS) return true
+    return online.value.has(id)
+  }
   /** Only the line right before this turn is ever shown while writing. */
   const previousLine = computed(() => {
     const r = room.value
@@ -122,9 +145,16 @@ export function useRoom() {
             ? { status: 'reveal', turnDeadline: null }
             : { turnIndex: next, turnDeadline: Date.now() + r.turnSeconds * 1000 }
         await updateRoom(r.code, patch, r.turnIndex)
-      } else if (r.turnDeadline && Date.now() > r.turnDeadline + GRACE_MS && writer.value) {
+      } else if (writer.value && r.turnDeadline) {
+        const turnStart = r.turnDeadline - r.turnSeconds * 1000
+        const timedOut = Date.now() > r.turnDeadline + GRACE_MS
+        // A writer who left the game gets skipped after a short wait instead of the whole timer.
+        const gone = !isPresent(writer.value.id) && Date.now() > turnStart + ABSENT_MS
+        if (!timedOut && !gone) return
         handled = key
-        const text = FILLERS[r.turnIndex % FILLERS.length]!
+        const text = gone
+          ? `(${writer.value.name} left the booth)`
+          : FILLERS[r.turnIndex % FILLERS.length]!
         await submitLine(r.code, { turnIndex: r.turnIndex, playerId: writer.value.id, text })
       }
     } catch (e) {
@@ -133,11 +163,16 @@ export function useRoom() {
     }
   }
 
-  /** If the host left, the lowest seat takes over so the game keeps moving. */
+  /**
+   * If the host left (removed, or still seated but disconnected), the lowest connected seat takes
+   * over as referee so the game keeps moving.
+   */
   async function handoff() {
     const r = room.value
-    if (!r || players.value.some((p) => p.id === r.hostId)) return
-    if (players.value[0]?.id !== me.value) return
+    if (!r) return
+    const hostHere = players.value.some((p) => p.id === r.hostId) && isPresent(r.hostId)
+    if (hostHere) return
+    if (players.value.find((p) => isPresent(p.id))?.id !== me.value) return
     try {
       await updateRoom(r.code, { hostId: me.value })
     } catch (e) {
@@ -152,8 +187,15 @@ export function useRoom() {
     } catch {
       /* private mode: rejoin after refresh just will not work */
     }
-    unwatch?.()
-    unwatch = watchRoom(c, () => void refresh())
+    channel?.close()
+    online.value = null
+    watchedAt = Date.now()
+    channel = watchRoom(c, {
+      me: me.value,
+      onChange: () => void refresh(),
+      onPresence: (ids) => (online.value = new Set(ids)),
+      onMessage,
+    })
     clearInterval(poll)
     poll = setInterval(() => void refresh(), 3000)
     clearInterval(tick)
@@ -164,9 +206,30 @@ export function useRoom() {
     await refresh()
   }
 
+  /* 🔥 votes at the reveal. One vote per player (the latest counts). A player who arrives late
+     says hello and everyone re-sends their vote. */
+  function onMessage(event: string, payload: Record<string, unknown>) {
+    if (event === 'fire' && typeof payload.voter === 'string' && typeof payload.line === 'number') {
+      votes.value = { ...votes.value, [payload.voter]: payload.line }
+    } else if (event === 'fire-hello') {
+      const mine = votes.value[me.value]
+      if (mine !== undefined) channel?.send('fire', { voter: me.value, line: mine })
+    }
+  }
+  function vote(line: number) {
+    votes.value = { ...votes.value, [me.value]: line }
+    channel?.send('fire', { voter: me.value, line })
+  }
+  watch(phase, (p) => {
+    if (p === 'reveal') channel?.send('fire-hello', {})
+    else votes.value = {}
+  })
+
   function reset() {
-    unwatch?.()
-    unwatch = null
+    channel?.close()
+    channel = null
+    online.value = null
+    votes.value = {}
     clearInterval(poll)
     clearInterval(tick)
     code.value = ''
@@ -266,11 +329,12 @@ export function useRoom() {
   /*
    * Leaving the page through the app (back to the menu, another page) leaves the lobby too, so the next
    * visit to Collab starts at the host / join screen. A browser refresh does not run this, which is
-   * what lets resume() put you back in your lobby.
+   * what lets resume() put you back in your lobby. Mid-game the seat is kept so the turn order
+   * doesn't shift; presence tells the others you're gone and your turns get skipped.
    */
   onBeforeUnmount(() => {
     const c = code.value
-    if (c && me.value) void leaveRoom(c, me.value)
+    if (c && me.value && phase.value !== 'writing') void leaveRoom(c, me.value)
     reset()
   })
 
@@ -287,7 +351,11 @@ export function useRoom() {
     seated,
     seatsFull,
     writer,
+    nextWriter,
     isMyTurn,
+    online,
+    votes,
+    vote,
     previousLine,
     alreadyWrote,
     secondsLeft,
