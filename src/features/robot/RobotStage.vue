@@ -204,6 +204,19 @@ onBeforeUnmount(() => {
   <section class="robot-stage" :class="{ live: isPlaying || grooving }" aria-label="Robot rapper">
     <div :key="bubblePop" class="bubble ink" :class="{ pop: bubblePop > 0 }" aria-live="polite">
       {{ bubble }}
+      <!-- Paper tail with an ink outline: the fill reaches up over the bubble's bottom line so
+           the two read as one shape; only the two sides get a stroke. -->
+      <svg class="tail" viewBox="0 -5 30 30" aria-hidden="true">
+        <polygon points="3,-4 25,-4 26,0 21,24 2,0" fill="#fff7e3" />
+        <polyline
+          points="2,0 21,24 26,0"
+          fill="none"
+          stroke="#0b0614"
+          stroke-width="3"
+          stroke-linejoin="round"
+          stroke-linecap="round"
+        />
+      </svg>
     </div>
     <button
       ref="robotEl"
@@ -528,15 +541,16 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   max-width: 92%;
 }
-.bubble::after {
-  content: '';
+.tail {
   position: absolute;
-  left: 62%;
-  bottom: -21px;
-  width: 28px;
-  height: 24px;
-  background: var(--ink);
-  clip-path: polygon(0 0, 100% 0, 82% 100%);
+  left: 60%;
+  /* the fill's top edge covers the bubble's 3px outline below its bottom edge */
+  bottom: -28px;
+  width: 30px;
+  height: 30px;
+  overflow: visible;
+  /* same offset ink shadow as the bubble, so the tail sits on the same "paper" */
+  filter: drop-shadow(4px 5px 0 var(--ink));
 }
 .bubble.pop {
   animation: pop 0.22s var(--spring);
